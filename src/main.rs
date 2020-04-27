@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::io;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
 
 use nom::{
     IResult,
@@ -10,6 +13,7 @@ use nom::{
 };
 
 mod parser;
+mod table;
 
 fn main() {
     let template = r#"
@@ -18,31 +22,38 @@ fn main() {
         2. {{ second }}
         3. {{ third }}
     "#;
-/*
-    let input = r#"
-        1. rust
-        2. c++ 
-        3. python
-    "#;
-*/
-    let syn = parser::Syntax::default();
-    let mut table = Vec::default();
-    let templates: Vec<&str> = template.trim().split("\n").collect();
-    loop {
-        let mut input = String::new();
-        let _ = io::stdin().read_line(&mut input);
+    
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
 
-        for template in templates.clone() {
-            let tokens = parser::parse(template.trim(), &syn);
+    let thandle = thread::spawn(move || {
+        let syn = parser::Syntax::default();
+        let mut rows = Vec::default();
+        let templates: Vec<&str> = template.trim().split("\n").collect();
 
-            match parsec(&tokens, input.trim()) {
-                Ok((_rest, rebind)) => table.push(rebind),
-                _ => {}
-            };
+        while running.load(Ordering::Relaxed) {
+            let mut input = String::new();
+            let _ = io::stdin().read_line(&mut input);
+
+            for template in templates.clone() {
+                let tokens = parser::parse(template.trim(), &syn);
+                dbg!(&tokens);
+                match parsec(&tokens, input.trim()) {
+                    Ok((_rest, rebind)) => rows.push(rebind),
+                    _ => {}
+                };
+            }
+            
+            table::printstd(&rows);
         }
+    });
 
-        dbg!(&table);
-    }
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::Relaxed);
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    let _ = thandle.join();
 }
 
 fn parsec<'a>(tokens: &'a Vec<parser::Node>, mut input: &'a str) -> IResult<&'a str, HashMap<String, String>> {
@@ -57,9 +68,7 @@ fn parsec<'a>(tokens: &'a Vec<parser::Node>, mut input: &'a str) -> IResult<&'a 
             parser::Node::Expr(_, parser::Expr::Var(key)) => {
                 let next = tokens.get(idx + 1);
                 let (rest, hit) = get_expr_value(input, next).unwrap();
-
                 h.insert(key.to_string(), hit.to_string());
-
                 input = rest;
             },
             parser::Node::Expr(_, parser::Expr::Filter("truncate", arguments)) => {
@@ -68,12 +77,9 @@ fn parsec<'a>(tokens: &'a Vec<parser::Node>, mut input: &'a str) -> IResult<&'a 
                         if let Ok(n) = n.parse() {
                             let next = tokens.get(idx + 1);
                             let (rest, hit) = get_expr_value(input, next).unwrap();
-
                             let mut s = String::from(hit);
                             s.truncate(n);
-
                             h.insert(key.to_string(), s);
-
                             input = rest;
                         }
                     }
