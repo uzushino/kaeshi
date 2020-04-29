@@ -17,10 +17,9 @@ mod table;
 
 fn main() {
     let template = r#"
-    Programming language
-        1. {{ first }}
-        2. {{ second }}
-        3. {{ third }}
+    abc
+    a{{ b }}c
+    a {{ b }} c
     "#;
     
     let running = Arc::new(AtomicBool::new(true));
@@ -29,20 +28,20 @@ fn main() {
     let thandle = thread::spawn(move || {
         let syn = parser::Syntax::default();
         let mut rows = Vec::default();
-        let templates: Vec<&str> = template.trim().split("\n").collect();
+        //let templates: Vec<&str> = template.trim().split("\n").collect();
 
         while running.load(Ordering::Relaxed) {
             let mut input = String::new();
             let _ = io::stdin().read_line(&mut input);
 
-            for template in templates.clone() {
+            //for template in templates.clone() {
                 let tokens = parser::parse(template.trim(), &syn);
                 dbg!(&tokens);
                 match parsec(&tokens, input.trim()) {
                     Ok((_rest, rebind)) => rows.push(rebind),
                     _ => {}
                 };
-            }
+            //}
             
             table::printstd(&rows);
         }

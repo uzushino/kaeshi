@@ -79,6 +79,10 @@ where
     }
 }
 
+fn slice_to_string(s: &[u8]) -> String {
+    String::from_utf8(s.to_vec()).unwrap()
+}
+
 fn split_ws_parts(s: &[u8]) -> Node {
     if s.is_empty() {
         let rs = str::from_utf8(s).unwrap();
@@ -86,9 +90,11 @@ fn split_ws_parts(s: &[u8]) -> Node {
     }
 
     let is_ws = |c: &u8| *c != b' ' && *c != b'\t' && *c != b'\r' && *c != b'\n';
+    let is_ws2 = |c: &u8| *c == b'\n';
     let start = s.iter().position(&is_ws);
     let res = if let Some(start) = start {
-        let end = s.iter().rposition(&is_ws);
+        let end = s.iter().rposition(&is_ws2);
+        
         if let Some(end) = end {
             (&s[..start], &s[start..=end], &s[end + 1..])
         } else {
@@ -116,6 +122,8 @@ enum ContentState {
 fn take_content<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> ParserError<'a, Node<'a>> {
     use crate::parser::ContentState::*;
 
+    dbg!(slice_to_string(i));
+
     let bs = s.block_start.as_bytes()[0];
     let be = s.block_start.as_bytes()[1];
     let es = s.expr_start.as_bytes()[0];
@@ -124,17 +132,30 @@ fn take_content<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> ParserError<'a, Node<'a>>
     let mut state = Start;
     for (idx, c) in i.iter().enumerate() {
         state = match state {
-            Start | Any => {
+            Start => {
                 if *c == bs || *c == es {
                     Brace(idx)
-                } else {
+                }
+                else {
+                    Any
+                }
+            }
+            Any => {
+                if *c == bs || *c == es {
+                    Brace(idx)
+                }
+                else if *c == b'\n' {
+                    End(idx+1)
+                } 
+                else {
                     Any
                 }
             }
             Brace(start) => {
                 if *c == be || *c == ee {
                     End(start)
-                } else {
+                } 
+                else {
                     Any
                 }
             }
