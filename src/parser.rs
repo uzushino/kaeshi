@@ -121,9 +121,6 @@ enum ContentState {
 
 fn take_content<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> ParserError<'a, Node<'a>> {
     use crate::parser::ContentState::*;
-
-    dbg!(slice_to_string(i));
-
     let bs = s.block_start.as_bytes()[0];
     let be = s.block_start.as_bytes()[1];
     let es = s.expr_start.as_bytes()[0];
