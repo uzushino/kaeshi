@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::collections::BTreeMap;
+
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -12,18 +14,29 @@ use nom::{
     },
 };
 
+use serde::{Serialize, Deserialize};
+use serde_yaml::{ self, Error };
 mod parser;
 mod table;
 
+#[derive(Debug, Serialize, Deserialize)]
+struct App {
+    templates: Vec<String>,
+    vars: Vec<String>,
+    filters: Vec<String>,
+}
+
 fn main() {
-    let template = r#"
-abc
-a{{ b0 }}c
-a {{ b1 }} c
-    "#;
-    
+    let contents = std::fs::read_to_string("sample.yml").unwrap();
+    let app: HashMap<String, App> = serde_yaml::from_str(&contents).unwrap();
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
+
+    let template = r#"
+    abc
+    a{{ b0 }}c
+    a {{ b1 }} c
+    "#;
 
     let thandle = thread::spawn(move || {
         let syn = parser::Syntax::default();
