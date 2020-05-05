@@ -11,26 +11,26 @@ use std::str;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 
-#[derive(Debug)]
-pub struct Syntax<'a> {
-    pub block_start: &'a str,
-    pub block_end: &'a str,
-    pub expr_start: &'a str,
-    pub expr_end: &'a str,
+#[derive(Debug, Clone)]
+pub struct Syntax {
+    pub block_start: String,
+    pub block_end: String,
+    pub expr_start: String,
+    pub expr_end: String,
 }
 
-impl<'a> Default for Syntax<'a> {
+impl Default for Syntax {
     fn default() -> Self {
         Self {
-            block_start: "{%",
-            block_end: "%}",
-            expr_start: "{{",
-            expr_end: "}}",
+            block_start: String::from("{%"),
+            block_end: String::from("%}"),
+            expr_start: String::from("{{"),
+            expr_end: String::from("}}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a> {
     BoolLit(&'a str),
     NumLit(&'a str),
@@ -42,7 +42,7 @@ pub enum Expr<'a> {
     BinOp(&'a str, Box<Expr<'a>>, Box<Expr<'a>>),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Target<'a> {
     Name(&'a str),
     Tuple(Vec<&'a str>),
@@ -51,7 +51,7 @@ pub enum Target<'a> {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WS(pub bool, pub bool);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Node<'a> {
     Lit(&'a str, &'a str, &'a str),
     Expr(WS, Expr<'a>),
@@ -77,10 +77,6 @@ where
             .unwrap_or(i);
         Ok((i, res))
     }
-}
-
-fn slice_to_string(s: &[u8]) -> String {
-    String::from_utf8(s.to_vec()).unwrap()
 }
 
 fn split_ws_parts(s: &[u8]) -> Node {
@@ -119,7 +115,7 @@ enum ContentState {
     End(usize),
 }
 
-fn take_content<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> ParserError<'a, Node<'a>> {
+fn take_content<'a>(i: &'a [u8], s: &'a Syntax) -> ParserError<'a, Node<'a>> {
     use crate::parser::ContentState::*;
     let bs = s.block_start.as_bytes()[0];
     let be = s.block_start.as_bytes()[1];
@@ -355,7 +351,7 @@ fn expr_any(i: &[u8]) -> IResult<&[u8], Expr> {
     Ok(expr_or(i)?)
 }
 
-fn expr_node<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> {
+fn expr_node<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
     let p = tuple((
         |i| tag_expr_start(i, s),
         opt(tag("-")),
@@ -372,7 +368,7 @@ fn cond_if(i: &[u8]) -> IResult<&[u8], Expr> {
     Ok((i, cond))
 }
 
-fn cond_block<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Cond<'a>> {
+fn cond_block<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Cond<'a>> {
     let p = tuple((
         |i| tag_block_start(i, s),
         opt(tag("-")),
@@ -386,7 +382,7 @@ fn cond_block<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Cond<'a>>
     Ok((i, (WS(pws.is_some(), nws.is_some()), cond, block)))
 }
 
-fn block_if<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> {
+fn block_if<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
     let p = tuple((
         opt(tag("-")),
         cond_if,
@@ -407,7 +403,7 @@ fn block_if<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> {
     Ok((i, Node::Cond(res, WS(pws2.is_some(), nws2.is_some()))))
 }
 
-fn block_for<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> {
+fn block_for<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
     let p = tuple((
         opt(tag("-")),
         ws(tag("for")),
@@ -435,7 +431,7 @@ fn block_for<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> 
     ))
 }
 
-fn block_node<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>> {
+fn block_node<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
     let p = tuple((
         |i| tag_block_start(i, s),
         alt((
@@ -448,7 +444,7 @@ fn block_node<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Node<'a>>
     Ok((i, contents))
 }
 
-fn parse_template<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Vec<Node<'a>>> {
+pub fn parse_template<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<Node<'a>>> {
     many0(alt((
         complete(|i| take_content(i, s)),
         complete(|i| expr_node(i, s)),
@@ -456,20 +452,20 @@ fn parse_template<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], Vec<N
     )))(i)
 }
 
-fn tag_block_start<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], &'a [u8]> {
-    tag(s.block_start)(i)
+fn tag_block_start<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
+    tag(s.block_start.as_str())(i)
 }
-fn tag_block_end<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], &'a [u8]> {
-    tag(s.block_end)(i)
+fn tag_block_end<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
+    tag(s.block_end.as_str())(i)
 }
-fn tag_expr_start<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], &'a [u8]> {
-    tag(s.expr_start)(i)
+fn tag_expr_start<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
+    tag(s.expr_start.as_str())(i)
 }
-fn tag_expr_end<'a>(i: &'a [u8], s: &'a Syntax<'a>) -> IResult<&'a [u8], &'a [u8]> {
-    tag(s.expr_end)(i)
+fn tag_expr_end<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
+    tag(s.expr_end.as_str())(i)
 }
 
-pub fn parse<'a>(src: &'a str, syntax: &'a Syntax<'a>) -> Vec<Node<'a>> {
+pub fn parse<'a>(src: &'a str, syntax: &'a Syntax) -> Vec<Node<'a>> {
     match parse_template(src.as_bytes(), syntax) {
         Ok((left, res)) => {
             if !left.is_empty() {
