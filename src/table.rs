@@ -1,7 +1,7 @@
-use std::collections::{ HashMap, HashSet };
+use std::collections::{ HashMap, HashSet, BTreeMap };
 use prettytable::{ Table, Cell, Row };
 
-pub fn printstd(rows: &Vec<HashMap<String, String>>) {
+pub fn printstd(rows: &Vec<BTreeMap<String, String>>) {
     let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
         let ks: HashSet<String> =
             row.keys().cloned().collect();

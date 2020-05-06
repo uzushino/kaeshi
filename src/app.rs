@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::{ BTreeMap, HashMap };
 use serde::{Serialize, Deserialize};
 use serde_yaml::{ self, Error };
@@ -9,22 +10,18 @@ use nom::{
         tag,
     },
 };
+use nom::multi::many0;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct App {
-    templates: Vec<BTreeMap<String, String>>,
+    templates: Vec<HashMap<String, String>>,
     vars: Vec<String>,
     filters: Vec<String>,
 }
 
-pub fn load_from_file<'a>(file: &'a str) -> BTreeMap<String, App> {
-    let contents = std::fs::read_to_string(file).unwrap();
-    serde_yaml::from_str(&contents).unwrap()
-}
-
-pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) -> IResult<&'a str, HashMap<String, String>> {
+pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |mut input: &str| {
-        let mut h: HashMap<String, String> = HashMap::default();
+        let mut h: BTreeMap<String, String> = BTreeMap::default();
         
         for (idx, token) in tokens.iter().enumerate() {
             match token {
@@ -85,13 +82,62 @@ pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
 }
 
+impl App {
+    pub fn load_from_file<'a>(file: &'a str) -> BTreeMap<String, App> {
+        let contents = std::fs::read_to_string(file).unwrap();
+        serde_yaml::from_str(&contents).unwrap()
+    }
+
+    pub fn table<'a>(&self, text: &'a str) -> Vec<BTreeMap<String, String>>{
+        let mut tables: Vec<BTreeMap<String, String>> = vec![];
+        let syn = parser::Syntax::default();
+        let body = RefCell::new(text.to_owned());
+
+        for template in self.templates.clone() {
+            for (k, rule) in template.clone().into_iter() {
+                let (_, result) =
+                    parser::parse_template(rule.as_bytes(), &syn).unwrap();
+                let s = body.borrow().clone();  
+
+                match k.as_str() {
+                    "many" => {
+                        let comb = make_combinator(&result);
+                        let comb = many0(comb);
+                        match comb(s.as_str()) {
+                            Ok((rest, mut results)) => {
+                                tables.append(&mut results);
+                                body.replace(rest.to_string());
+                            },
+                            _ => {}
+                        };
+                    },
+                    "tag" => {
+                        let comb = make_combinator(&result);
+                        match comb(s.as_str()) {
+                            Ok((rest, result)) => {
+                                tables.push(result);
+                                body.replace(rest.to_string());
+                            },
+                            _ => {}
+                        };
+                    },
+                    _ => {}
+                };
+            }
+        }
+
+        tables
+    }
+}
+
+
 mod test {
     use super::*;
     use nom::multi::many0;
    
     #[test]
     fn csv_parse() {
-        let app: BTreeMap<String, App> = load_from_file("sample.yml");
+        let app: BTreeMap<String, App> = App::load_from_file("sample.yml");
         let csv = app["csv"].clone();
         let syn = parser::Syntax::default();
         
