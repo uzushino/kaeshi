@@ -1,4 +1,4 @@
-use std::collections::{ HashMap, HashSet, BTreeMap };
+use std::collections::{ HashSet, BTreeMap };
 use prettytable::{ Table, Cell, Row };
 
 pub fn printstd(rows: &Vec<BTreeMap<String, String>>) {

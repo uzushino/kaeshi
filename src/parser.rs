@@ -465,22 +465,6 @@ fn tag_expr_end<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
     tag(s.expr_end.as_str())(i)
 }
 
-pub fn parse<'a>(src: &'a str, syntax: &'a Syntax) -> Vec<Node<'a>> {
-    match parse_template(src.as_bytes(), syntax) {
-        Ok((left, res)) => {
-            if !left.is_empty() {
-                let s = str::from_utf8(left).unwrap();
-                panic!("unable to parse template:\n\n{:?}", s);
-            } else {
-                res
-            }
-        }
-        Err(nom::Err::Error(err)) => panic!("problems parsing template source: {:?}", err),
-        Err(nom::Err::Failure(err)) => panic!("problems parsing template source: {:?}", err),
-        Err(nom::Err::Incomplete(_)) => panic!("parsing incomplete"),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::parser::Syntax;
@@ -506,13 +490,6 @@ mod tests {
         check_ws_split("\ta", &("\t", "a", ""));
         check_ws_split("b\n", &("", "b", "\n"));
         check_ws_split(" \t\r\n", &(" \t\r\n", "", ""));
-    }
-
-    #[test]
-    fn test_parse_filter() {
-        let syn = Syntax::default();
-        let a = super::parse("Hello, {{ strvar|e }}", &syn);
-        println!("{:?}", a);
     }
 }
 
