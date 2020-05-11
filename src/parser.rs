@@ -465,6 +465,7 @@ fn tag_expr_end<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
     tag(s.expr_end.as_str())(i)
 }
 
+#[allow(unused_imports)]
 #[cfg(test)]
 mod tests {
     use crate::parser::Syntax;

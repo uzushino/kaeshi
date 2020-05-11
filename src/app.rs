@@ -1,18 +1,18 @@
 use std::cell::RefCell;
 use std::collections::{ BTreeMap, HashMap };
 use serde::{Serialize, Deserialize};
-use serde_yaml::{ self, Error };
-use crate::parser;
 use nom::{
     IResult,
     character::complete::{ anychar },
-    sequence::{ preceded, terminated },
+    sequence::{ preceded },
     bytes::streaming::{ take_until },
     bytes::complete::{
         tag,
     },
+    multi::{ many0, many_till }
 };
-use nom::multi::{ many0, many_till };
+
+use crate::parser;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct App {
@@ -80,6 +80,7 @@ fn get_expr_value<'a>(input: &'a str, next: Option<&'a parser::Node<'a>>) -> Opt
     }
 }
 
+#[allow(dead_code)]
 pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
 }
@@ -148,6 +149,7 @@ impl App {
     }
 }
 
+#[allow(unused_imports)]
 mod test {
     use super::*;
     use nom::multi::many0;
