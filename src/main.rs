@@ -2,16 +2,24 @@ use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
+use structopt::StructOpt;
 
 mod app;
 mod parser;
 mod table;
 
+#[derive(Debug, StructOpt)]
+struct Opt {
+    pub file: String,
+}
+
 fn main() {
+    let opt = Opt::from_args();
+
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     let thandle = thread::spawn(move || {
-        let app = app::App::load_from_file("sample.yml");
+        let app = app::App::load_from_file(opt.file.as_str()); 
             
         while running.load(Ordering::Relaxed) {
             let mut input = String::default();
