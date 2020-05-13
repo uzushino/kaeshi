@@ -88,9 +88,9 @@ pub fn slice_to_string(s: &[u8]) -> String {
 use std::option::Option;
 
 impl App {
-    pub fn load_from_file<'a>(file: &'a str) -> BTreeMap<String, App> {
+    pub fn load_from_file<'a>(file: &'a str) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
         let contents = std::fs::read_to_string(file).unwrap();
-        serde_yaml::from_str(&contents).unwrap()
+        serde_yaml::from_str(&contents)
     }
 
     pub fn combinator<'a>(templates: Vec<HashMap<String, String>>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
@@ -156,7 +156,7 @@ mod test {
 
     #[test]
     fn csv_parse() {
-        let app: BTreeMap<String, App> = App::load_from_file("sample.yml");
+        let app: BTreeMap<String, App> = App::load_from_file("sample.yml").unwrap();
         let csv = app["csv"].clone();
         let syn = parser::Syntax::default();
         

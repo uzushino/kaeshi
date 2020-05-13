@@ -19,7 +19,7 @@ fn main() {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     let thandle = thread::spawn(move || {
-        let app = app::App::load_from_file(opt.file.as_str()); 
+        let app = app::App::load_from_file(opt.file.as_str()).unwrap(); 
             
         while running.load(Ordering::Relaxed) {
             let mut input = String::default();
