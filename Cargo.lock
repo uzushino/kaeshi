@@ -10,6 +10,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.30"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2494382e9ba43995f3c56359e518641f450f5c36feeb4632a75cde2ec297c867"
+
+[[package]]
 name = "arrayref"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,6 +516,7 @@ dependencies = [
 name = "table-rebinder"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "ctrlc",
  "nom",
  "prettytable-rs",

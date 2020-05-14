@@ -13,13 +13,13 @@ struct Opt {
     pub file: String,
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
 
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
+    let app = app::App::load_from_file(opt.file.as_str())?; 
     let thandle = thread::spawn(move || {
-        let app = app::App::load_from_file(opt.file.as_str()).unwrap(); 
             
         while running.load(Ordering::Relaxed) {
             let mut input = String::default();
@@ -48,4 +48,6 @@ fn main() {
     .expect("Error setting Ctrl-C handler");
 
     let _ = thandle.join();
+
+    Ok(())
 }
