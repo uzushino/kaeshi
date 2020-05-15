@@ -99,6 +99,7 @@ impl App {
             let mut results= Vec::default();
             let body = RefCell::new(text.to_owned());
             let old = templates.clone();
+
             for (i, template) in templates.iter().enumerate() {
                 for (k, rule) in template.clone().into_iter() {
                     let (_, result) =
@@ -110,16 +111,12 @@ impl App {
                             let comb = make_combinator(&result);
                             let (rest, result) = many0(comb)(s.trim()).unwrap();
 
-                            dbg!((&rest, &result));
-
                             (rest, result)
                         }
                         "skip" => {
                             let remain = &old[(i+1)..old.len()];
                             let acc = Self::combinator(remain.to_vec());
                             let (rest, _b) = many_till(anychar, preceded(tag("\n"), acc))(s.trim()).unwrap();
-
-                            dbg!((&rest, &_b));
 
                             (rest, Vec::default())
                         }
