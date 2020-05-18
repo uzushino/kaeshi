@@ -93,7 +93,7 @@ impl App {
         serde_yaml::from_str(&contents)
     }
 
-    pub fn combinator<'a>(templates: Vec<HashMap<String, String>>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
+    pub fn build<'a>(templates: Vec<HashMap<String, String>>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
         move |text: &str| {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
@@ -106,38 +106,53 @@ impl App {
                         parser::parse_template(rule.as_bytes(), &syn).unwrap();
                     let s = body.borrow().clone();  
 
-                    let (rest, mut tables) = match k.as_str() {
+                    let parsed= match k.as_str() {
                         "many" => {
                             let comb = make_combinator(&result);
                             let (rest, result) = many0(comb)(s.trim()).unwrap();
 
-                            (rest, result)
+                            Some((rest, result))
                         }
                         "skip" => {
                             let remain = &old[(i+1)..old.len()];
-                            let acc = Self::combinator(remain.to_vec());
-                            let (rest, _b) = many_till(anychar, preceded(tag("\n"), acc))(s.trim()).unwrap();
+                            let acc = Self::build(remain.to_vec());
+                            let r = many_till(anychar, preceded(tag("\n"), acc))(s.trim());
 
-                            (rest, Vec::default())
+                            match r {
+                                Ok((rest, _b)) => Some((rest, Vec::default())),
+                                _ => None
+                            }
                         }
                         "tag" => {
                             let comb = make_combinator(&result);
-                            let (rest, value) = comb(s.as_str()).unwrap();
-                            
-                            if value.is_empty() {
-                                (rest, Vec::default())
-                            } else {
-                                (rest, vec![value])
+                            match comb(s.as_str()) {
+                                Ok((rest, value)) => {
+                                    if value.is_empty() {
+                                        Some((rest, Vec::default()))
+                                    } else {
+                                        Some((rest, vec![value]))
+                                    }
+                                },
+                                _ => None
                             }
                         },
-                        _ => { (s.as_str(), Vec::default())}
+                        _ => None
                     };
 
-                    if !tables.is_empty() {
-                        results.append(&mut tables);
+                    match parsed {
+                        Some((rest, mut tables)) => {
+                            if !tables.is_empty() {
+                                results.append(&mut tables);
+                            }
+
+                            body.replace(rest.to_string());
+                        }
+                        _ => { 
+                            let err = ("", nom::error::ErrorKind::Fix);
+                            return Err(nom::Err::Error(err));
+                        }
                     }
 
-                    body.replace(rest.to_string());
                 }
             }
 
