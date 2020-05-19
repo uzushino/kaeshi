@@ -448,7 +448,7 @@ pub fn parse_template<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<N
     many0(alt((
         complete(|i| take_content(i, s)),
         complete(|i| expr_node(i, s)),
-        complete(|i| block_node(i, s)),
+        //complete(|i| block_node(i, s)),
     )))(i)
 }
 
