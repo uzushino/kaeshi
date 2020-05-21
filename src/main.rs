@@ -44,9 +44,7 @@ fn parse_input(templates: Vec<HashMap<String, String>>) -> String {
         },
         _ => {}
     }
-
-    dbg!(&result);
-
+    
     result.clone()
 }
 
@@ -58,15 +56,13 @@ fn main() -> anyhow::Result<()> {
     let app = app::App::load_from_file(opt.file.as_str())?; 
     let thandle = thread::spawn(move || {
         while running.load(Ordering::Relaxed) {
-            for (k, ap) in app.iter() {
+            for (_k, ap) in app.iter() {
                 let templates = ap.templates.clone();
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
 
                 match combinate(&input) {
                     Ok((_rest, rows)) => {
-                        dbg!(&_rest);
-
                         table::printstd(&rows);
                     },
                     _ => {}

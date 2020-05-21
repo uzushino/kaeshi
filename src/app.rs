@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::{ BTreeMap, HashMap };
+use std::option::Option;
 use serde::{Serialize, Deserialize};
 use nom::{
     IResult,
@@ -13,6 +14,10 @@ use nom::{
 };
 
 use crate::parser;
+
+pub enum Token {
+    Tag(String)
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct App {
@@ -84,8 +89,6 @@ fn get_expr_value<'a>(input: &'a str, next: Option<&'a parser::Node<'a>>) -> Opt
 pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
 }
-
-use std::option::Option;
 
 impl App {
     pub fn load_from_file<'a>(file: &'a str) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
