@@ -16,7 +16,9 @@ use nom::{
 use crate::parser;
 
 pub enum Token {
-    Tag(String)
+    Tag(String),
+    Many(Box<Token>),
+    Skip(Box<Token>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
