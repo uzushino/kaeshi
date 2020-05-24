@@ -14,7 +14,7 @@ struct Opt {
     pub file: String,
 }
 
-fn parse_input(templates: Vec<HashMap<String, String>>) -> String {
+fn parse_input(templates: Vec<app::Token>) -> String {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
     let i = input.as_str();
@@ -54,6 +54,7 @@ fn main() -> anyhow::Result<()> {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     let app = app::App::load_from_file(opt.file.as_str())?; 
+
     let thandle = thread::spawn(move || {
         while running.load(Ordering::Relaxed) {
             for (_k, ap) in app.iter() {

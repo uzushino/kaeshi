@@ -15,27 +15,32 @@ use nom::{
 
 use crate::parser;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Token {
+    #[serde(rename = "tag")]
     Tag(String),
+    #[serde(rename = "many")]
     Many(Box<Token>),
+    #[serde(rename = "skip")]
     Skip(Box<Token>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct App {
-    pub templates: Vec<HashMap<String, String>>,
+    pub templates: Vec<Token>,
     vars: Vec<String>,
     filters: Vec<String>,
 }
 
-pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) -> IResult<&'a str, BTreeMap<String, String>> {
+pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) -> IResult<String, BTreeMap<String, String>> {
     move |mut input: &str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
         
         for (idx, token) in tokens.iter().enumerate() {
             match token {
                 parser::Node::Lit(a, b, c) => {
-                    let (rest, _) = tag(&format!("{}{}{}", a, b, c)[..])(input)?;
+                    let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
+                    let (rest, a) = a.unwrap();
                     input = rest;
                 },
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
@@ -64,7 +69,7 @@ pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) ->
             }   
         };
         
-        IResult::Ok((input, h))
+        IResult::Ok((input.to_string(), h))
     }
 }
 
@@ -98,66 +103,70 @@ impl App {
         serde_yaml::from_str(&contents)
     }
 
-    pub fn build<'a>(templates: Vec<HashMap<String, String>>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
+    pub fn build<'a>(templates: Vec<Token>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
         move |text: &str| {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
             let body = RefCell::new(text.to_owned());
             let old = templates.clone();
 
-            for (i, template) in templates.iter().enumerate() {
-                for (k, rule) in template.clone().into_iter() {
-                    let (_, result) =
-                        parser::parse_template(rule.as_bytes(), &syn).unwrap();
-                    let s = body.borrow().clone();  
+            for (i, tok) in templates.iter().enumerate() {
+                let s = body.borrow().clone();  
+                let t= tok.clone();
+                let parsed: Option<(String, Vec<BTreeMap<String, String>>)> = match t {
+                    Token::Many(t) => {
+                        let comb= Self::build(vec![*t.clone()]);
+                        let (rest, result) = many0(comb)(s.trim()).unwrap();
+                        let a: Vec<BTreeMap<String, String>> = result
+                            .iter()
+                            .flatten()
+                            .map(|s| s.clone())
+                            .collect::<Vec<_>>();
 
-                    let parsed= match k.as_str() {
-                        "many" => {
-                            let comb = make_combinator(&result);
-                            let (rest, result) = many0(comb)(s.trim()).unwrap();
+                        Some((rest.to_string(), a.clone()))
+                    }
+                    /*
+                    "skip" => {
+                        let remain = &old[(i+1)..old.len()];
+                        let acc = Self::build(remain.to_vec());
+                        let r = many_till(anychar, preceded(tag("\n"), acc))(s.trim());
 
-                            Some((rest, result))
-                        }
-                        "skip" => {
-                            let remain = &old[(i+1)..old.len()];
-                            let acc = Self::build(remain.to_vec());
-                            let r = many_till(anychar, preceded(tag("\n"), acc))(s.trim());
-
-                            match r {
-                                Ok((rest, _b)) => Some((rest, Vec::default())),
-                                _ => None
-                            }
-                        }
-                        "tag" => {
-                            let comb = make_combinator(&result);
-                            match comb(s.as_str()) {
-                                Ok((rest, value)) => {
-                                    if value.is_empty() {
-                                        Some((rest, Vec::default()))
-                                    } else {
-                                        Some((rest, vec![value]))
-                                    }
-                                },
-                                _ => None
-                            }
-                        },
-                        _ => None
-                    };
-
-                    match parsed {
-                        Some((rest, mut tables)) => {
-                            if !tables.is_empty() {
-                                results.append(&mut tables);
-                            }
-
-                            body.replace(rest.to_string());
-                        }
-                        _ => { 
-                            let err = ("", nom::error::ErrorKind::Fix);
-                            return Err(nom::Err::Error(err));
+                        match r {
+                            Ok((rest, _b)) => Some((rest, Vec::default())),
+                            _ => None
                         }
                     }
+                    */
+                    Token::Tag(ref r) => {
+                        let (_, tbl) = parser::parse_template(r.as_bytes(), &syn).unwrap();
+                        let comb = make_combinator(&tbl);
 
+                        match comb(s.as_str()) {
+                            Ok((rest, value)) => {
+                                if value.is_empty() {
+                                    Some((rest, Vec::default()))
+                                } else {
+                                    Some((rest, vec![value]))
+                                }
+                            },
+                            _ => None
+                        }
+                    },
+                    _ => None
+                };
+                
+                match parsed {
+                    Some((rest, mut tables)) => {
+                        if !tables.is_empty() {
+                            results.append(&mut tables);
+                        }
+
+                        body.replace(rest.to_string());
+                    }
+                    _ => { 
+                        let err = ("", nom::error::ErrorKind::Fix);
+                        return Err(nom::Err::Error(err));
+                    }
                 }
             }
 
@@ -165,7 +174,7 @@ impl App {
         }
     }
 }
-
+/*
 #[allow(unused_imports)]
 mod test {
     use super::*;
@@ -182,10 +191,10 @@ mod test {
 2,def,20,def@example.com
         "#;
 
-        let title: String = csv.templates[0]["tag"].clone();
-        let many: String = csv.templates[2]["many"].clone();
+        let title = csv.templates[0].clone();
+        let many = csv.templates[2].clone();
         let (_, tokens) = parser::parse_template(
-            title.as_bytes(), 
+            title, 
             &syn
         ).unwrap();
 
@@ -193,9 +202,8 @@ mod test {
 
         match title_combinator(s) {
             Ok((rest, r)) => {
-                dbg!(r);
                 let (_, tokens) = parser::parse_template(
-                    many.as_bytes(), 
+                    many, 
                     &syn
                 ).unwrap();
 
@@ -212,3 +220,4 @@ mod test {
         }
     }
 }
+*/
