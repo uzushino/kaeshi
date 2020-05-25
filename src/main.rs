@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use structopt::StructOpt;
-use std::collections::HashMap;
 
 mod app;
 mod parser;
