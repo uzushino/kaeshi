@@ -23,6 +23,7 @@ fn parse_input(templates: Vec<app::Token>) -> String {
 
     match head(i) {
         Ok((_rest, _rows)) =>  {
+            dbg!(_rows);
             result = input.clone();
             loop {
                 let mut buf = String::default();

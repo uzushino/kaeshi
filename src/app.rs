@@ -22,7 +22,9 @@ pub enum Token {
     #[serde(rename = "many")]
     Many(Box<Token>),
     #[serde(rename = "skip")]
-    Skip(Box<Token>),
+    Skip,
+    #[serde(rename = "while")]
+    While(Box<Token>),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,8 +42,13 @@ pub fn make_combinator<'a>(tokens: &'a Vec<parser::Node>) -> impl Fn(&'a str) ->
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
-                    let (rest, _) = a.unwrap();
-                    input = rest;
+                    match a {
+                        Ok((rest, _)) => input = rest,
+                        _ => {
+                            let err = ("".to_string(), nom::error::ErrorKind::Fix);
+                            return Err(nom::Err::Error(err));
+                        }
+                    }
                 },
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
                     let next = tokens.get(idx + 1);
@@ -110,7 +117,7 @@ impl App {
             let body = RefCell::new(text.to_owned());
             let old = templates.clone();
 
-            for (_i, tok) in templates.iter().enumerate() {
+            for (i, tok) in templates.iter().enumerate() {
                 let s = body.borrow().clone();  
                 let t= tok.clone();
                 let parsed: Option<(String, Vec<BTreeMap<String, String>>)> = match t {
@@ -125,7 +132,16 @@ impl App {
 
                         Some((rest.to_string(), a.clone()))
                     }
-                    Token::Skip(t) => {
+                    Token::Skip => {
+                        let remain = &old[(i+1)..old.len()];
+                        let acc = Self::build(remain.to_vec());
+                        let r = many_till(anychar, preceded(tag("\n"), acc))(s.trim());
+                        match r {
+                            Ok((rest, _b)) => Some((rest.to_string(), Vec::default())),
+                            _ => None
+                        }
+                    }
+                    Token::While(t) => {
                         let acc = Self::build(vec![*t.clone()]);
                         let r = many_till(anychar, preceded(tag("\n"), acc))(s.trim());
                         match r {
@@ -136,8 +152,9 @@ impl App {
                     Token::Tag(ref r) => {
                         let (_, tbl) = parser::parse_template(r.as_bytes(), &syn).unwrap();
                         let comb = make_combinator(&tbl);
-
-                        match comb(s.as_str()) {
+                        let aa = comb(s.as_str()); 
+                        
+                        match aa {
                             Ok((rest, value)) => {
                                 if value.is_empty() {
                                     Some((rest, Vec::default()))
@@ -148,7 +165,6 @@ impl App {
                             _ => None
                         }
                     },
-                    _ => None
                 };
                 
                 match parsed {
@@ -156,7 +172,6 @@ impl App {
                         if !tables.is_empty() {
                             results.append(&mut tables);
                         }
-
                         body.replace(rest.to_string());
                     }
                     _ => { 
