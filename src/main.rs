@@ -23,20 +23,18 @@ fn parse_input(templates: Vec<app::Token>) -> String {
 
     match head(i) {
         Ok((_rest, _rows)) =>  {
-            dbg!(_rows);
             result = input.clone();
+
             loop {
                 let mut buf = String::default();
                 let _ = io::stdin().read_line(&mut buf);
                 let combinator = 
                     app::App::build(vec![templates.last().unwrap().clone()]);
-                let r = combinator(&buf);
+                let r = combinator(buf.as_str());
 
                 if let Ok((_rest, rows)) = r {
                     result = format!("{}{}", result, buf);
-                    if !rows.is_empty() {
-                        break;
-                    }
+                    break;
                 } else {
                     result = format!("{}{}", result, buf);
                 }
@@ -44,7 +42,7 @@ fn parse_input(templates: Vec<app::Token>) -> String {
         },
         _ => {}
     }
-    
+
     result.clone()
 }
 
@@ -61,8 +59,8 @@ fn main() -> anyhow::Result<()> {
                 let templates = ap.templates.clone();
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
-
-                match combinate(&input) {
+                let aa = combinate(&input);
+                match aa {
                     Ok((_rest, rows)) => {
                         table::printstd(&rows);
                     },
