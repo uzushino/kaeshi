@@ -32,7 +32,7 @@ fn parse_input(templates: Vec<app::Token>) -> String {
                     app::App::build(vec![templates.last().unwrap().clone()]);
                 let r = combinator(buf.as_str());
 
-                if let Ok((_rest, rows)) = r {
+                if let Ok((_rest, _rows)) = r {
                     result = format!("{}{}", result, buf);
                     break;
                 } else {

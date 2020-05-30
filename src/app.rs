@@ -61,15 +61,12 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     if let Some(parser::Node::Lit(a, b, c)) = next {
                         let result: IResult<&'a str, &'a str> = 
                             take_until(&format!("{}{}{}", a, b, c)[..])(input);
-                        dbg!((input, &result));
                         if let Ok((rest, hit))  = result {
                             h.insert(key.to_string(), hit.to_string());
                             input = rest;
                         }
                     } else {
-                        dbg!(&input);
                         let result: IResult<&'a str, &'a str> = take_until("\n")(input);
-                        dbg!(&result);
                         if let Ok((rest, capture))  = result {
                             h.insert(key.to_string(), capture.to_string());
                             input = rest;
@@ -177,9 +174,7 @@ impl App {
                     Token::Tag(ref r) => {
                         let (_, tbl) = parser::parse_template(r.as_bytes(), &syn).unwrap();
                         let comb = make_combinator();
-                        dbg!(text);
-                        let aa = comb(tbl, text);
-                        match aa {
+                        match comb(tbl, text) {
                             Ok((rest, value)) => {
                                 if value.is_empty() {
                                     Some((rest, Vec::default()))
@@ -205,8 +200,6 @@ impl App {
                     }
                 }
             }
-
-            dbg!((text, &results));
 
             Ok((text, results))
         }
