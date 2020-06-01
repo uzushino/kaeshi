@@ -59,11 +59,9 @@ fn main() -> anyhow::Result<()> {
                 let templates = ap.templates.clone();
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
-                let aa = combinate(&input);
-                match aa {
-                    Ok((_rest, rows)) => {
-                        table::printstd(&rows);
-                    },
+                
+                match combinate(&input) {
+                    Ok((_rest, rows)) => table::printstd(&rows),
                     _ => {}
                 }
             }

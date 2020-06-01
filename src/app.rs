@@ -30,8 +30,8 @@ pub enum Token {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct App {
     pub templates: Vec<Token>,
-    vars: Vec<String>,
-    filters: Vec<String>,
+    vars: Option<Vec<String>>,
+    filters: Option<Vec<String>>,
 }
 
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
@@ -44,10 +44,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
                     match a {
-                        Ok((rest, _b)) => {
-                            dbg!((input, &rest, &_b));
-                            input = rest
-                        },
+                        Ok((rest, _b)) => input = rest,
                         _ => {
                             let err = (input, nom::error::ErrorKind::Fix);
                             return Err(nom::Err::Error(err));
@@ -129,6 +126,10 @@ impl App {
         let contents = std::fs::read_to_string(file).unwrap();
         serde_yaml::from_str(&contents)
     }
+    
+    pub fn load_from_str(content: impl ToString) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
+        serde_yaml::from_str(content.to_string().as_str())
+    }
 
     pub fn build<'a>(templates: Vec<Token>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
         move |mut text: &str| {
@@ -137,8 +138,7 @@ impl App {
             let old = templates.clone();
 
             for (i, tok) in templates.iter().enumerate() {
-                let t= tok.clone();
-                let parsed = match t {
+                let parsed = match tok {
                     Token::Many(t) => {
                         let comb= Self::build(vec![*t.clone()]);
                         let (rest, result) = many0(comb)(text.trim()).unwrap();
@@ -154,7 +154,8 @@ impl App {
                     Token::Skip => {
                         let remain = &old[(i+1)..old.len()];
                         let acc = Self::build(remain.to_vec());
-                        let r = many_till(anychar,  acc)(text);
+                        let r = 
+                            many_till(anychar,  acc)(text);
                         match r {
                             Ok((_rest, (matches, _))) => {
                                 Some((&text[matches.len()..], Vec::default()))
@@ -171,11 +172,13 @@ impl App {
                             _ => None
                         }
                     }
-                    Token::Tag(ref r) => {
-                        let (_, tbl) = parser::parse_template(r.as_bytes(), &syn).unwrap();
+                    Token::Tag(ref tag) => {
+                        let (_, tbl) = parser::parse_template(tag.as_bytes(), &syn).unwrap();
                         let comb = make_combinator();
-                        match comb(tbl, text) {
+                        let r = comb(tbl, text);
+                        match r {
                             Ok((rest, value)) => {
+                        
                                 if value.is_empty() {
                                     Some((rest, Vec::default()))
                                 } else {
@@ -195,7 +198,7 @@ impl App {
                         text = rest;
                     }
                     _ => { 
-                        let err = ("", nom::error::ErrorKind::Fix);
+                        let err = (text, nom::error::ErrorKind::Fix);
                         return Err(nom::Err::Error(err));
                     }
                 }
@@ -205,50 +208,46 @@ impl App {
         }
     }
 }
-/*
+
 #[allow(unused_imports)]
 mod test {
     use super::*;
+
     use nom::multi::many0;
+    use crate::table;
 
     #[test]
     fn csv_parse() {
-        let app: BTreeMap<String, App> = App::load_from_file("sample.yml").unwrap();
-        let csv = app["csv"].clone();
-        let syn = parser::Syntax::default();
-        
-        let s = r#"id,name,age,email
-1,abc,10,abc@example.com
-2,def,20,def@example.com
-        "#;
-
-        let title = csv.templates[0].clone();
-        let many = csv.templates[2].clone();
-        let (_, tokens) = parser::parse_template(
-            title, 
-            &syn
-        ).unwrap();
-
-        let title_combinator = make_combinator(&tokens);
-
-        match title_combinator(s) {
-            Ok((rest, r)) => {
-                let (_, tokens) = parser::parse_template(
-                    many, 
-                    &syn
-                ).unwrap();
-
-                let record_combinator = many0(|s: &str| make_combinator(&tokens)(s.trim()));
-                match record_combinator(rest) {
-                    Ok((rest, values)) => {
-                        assert!(rest.is_empty());
-                        assert_eq!(values.len(), 2);
-                    },  
-                    Err(_) => {}
-                }
+        const YML: &str = r#"
+csv:
+  templates:
+    - 
+      tag: "id,name,age,email\n"
+    -
+      skip:
+    - 
+      many: 
+        tag: "hoge,{{i}},{{n}},{{a}},{{e}}"
+    -
+      skip:
+    - 
+      tag: "total,{{total}}"
+"#;
+        let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
+        let input = r#"
+id,name,age,email
+==
+hoge,1,2,3,4
+hoge,5,6,7,8
+------
+total,20
+"#;
+        let combinate = App::build(app["csv"].templates.clone());
+        match combinate(input.trim()) {
+            Ok((_rest, rows)) => {
+                table::printstd(&rows);
             },
-            Err(_) => {}
+            Err(e) =>  { dbg!(e); }
         }
     }
 }
-*/
