@@ -1,16 +1,14 @@
-use std::cell::RefCell;
-use std::collections::{ BTreeMap, HashMap };
+use std::collections::BTreeMap;
 use std::option::Option;
 use serde::{Serialize, Deserialize};
 use nom::{
     IResult,
     character::complete::{ anychar },
-    sequence::{ preceded },
     bytes::streaming::{ take_until },
     bytes::complete::{
         tag,
     },
-    multi::{ many0, many1, many_till }
+    multi::{ many1, many_till }
 };
 
 use crate::parser;
@@ -165,10 +163,9 @@ impl App {
 
                         for (u, _ch) in text.chars().into_iter().enumerate() {
                             let s = &text[u..];
-                            
-                            if let Ok((_rest, _rows)) = acc(s) {
+                            if let Ok(_) = acc(s) {
                                 result = Some((s, Vec::default()));
-                                break ;
+                                break
                             }
                         }
                         
