@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 use std::option::Option;
 use serde::{Serialize, Deserialize};
+use nom::character::complete::alphanumeric1;
+use nom::branch::alt;
+use nom::sequence::{preceded, terminated};
 use nom::{
     IResult,
     character::complete::{ anychar },
@@ -44,7 +47,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     match a {
                         Ok((rest, _b)) => input = rest,
                         _ => {
-                            let err = (input, nom::error::ErrorKind::Fix);
+                            let err = (input, nom::error::ErrorKind::Eof);
                             return Err(nom::Err::Error(err));
                         }
                     }
@@ -53,14 +56,21 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     let next = tokens.get(idx + 1);
                     
                     if let Some(parser::Node::Lit(a, b, c)) = next {
-                        let result: IResult<&'a str, &'a str> = 
-                            take_until(&format!("{}{}{}", a, b, c)[..])(input);
-                        if let Ok((rest, hit))  = result {
+                        let result: IResult<&str, &str> = terminated(
+                            alphanumeric1,
+                            alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))
+                        )(input);
+
+                        if let Ok((rest, hit)) = dbg!(result) {
                             h.insert(key.to_string(), hit.to_string());
                             input = rest;
+                        } else {
+                            let err = (input, nom::error::ErrorKind::ParseTo);
+                            return Err(nom::Err::Error(err));
                         }
                     } else {
-                        let result: IResult<&'a str, &'a str> = take_until("\n")(input);
+                        let result: IResult<&'a str, &'a str> = 
+                            take_until("\n")(input);
 
                         if let Ok((rest, capture))  = result {
                             h.insert(key.to_string(), capture.to_string());
@@ -94,7 +104,6 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
             }   
         };
         
-                        dbg!((&input, &h));
         IResult::Ok((input, h))
     }
 }
@@ -143,6 +152,7 @@ impl App {
                 let parsed = match tok {
                     Token::Many(t) => {
                         let comb= Self::build(vec![*t.clone()]);
+
                         match many1(comb)(text.trim()) {
                             Ok((rest, result)) => {
                                 let a: Vec<BTreeMap<String, String>> = result
@@ -163,7 +173,8 @@ impl App {
 
                         for (u, _ch) in text.chars().into_iter().enumerate() {
                             let s = &text[u..];
-                            if let Ok(_) = acc(s) {
+                            dbg!(s);
+                            if let Ok(_) = dbg!(acc(s)) {
                                 result = Some((s, Vec::default()));
                                 break
                             }
@@ -224,6 +235,17 @@ mod test {
 
     use nom::multi::many0;
     use crate::table;
+    use nom::character::is_alphanumeric;
+    use nom::character::complete::alphanumeric1;
+    use nom::IResult;
+    use nom::sequence::{preceded, terminated};
+    use nom::bytes::complete::tag;
+
+    #[test]
+    fn before()  {
+       let a: IResult<&str, &str> = terminated(alphanumeric1, tag(","))("====\nabc,def");
+       dbg!(a);
+    }
 
     #[test]
     fn csv_parse() {
@@ -237,22 +259,15 @@ csv:
     - 
       many: 
         tag: "{{i}},{{n}},{{a}},{{e}}\n"
-    -
-      skip:
-    - 
-      tag: "total,{{total}}"
 "#;
         let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
         let input = r#"
 id,name,age,email
 ==
 1,2,3,4
-5,6,7,8
-------
-total,20
 "#;
         let combinate = App::build(app["csv"].templates.clone());
-        match combinate(input.trim()) {
+        match combinate(input.trim_start()) {
             Ok((_rest, rows)) => {
                 table::printstd(&rows);
             },

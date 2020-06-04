@@ -61,18 +61,18 @@ pub enum Node<'a> {
 
 pub type Cond<'a> = (WS, Option<Expr<'a>>, Vec<Node<'a>>);
 
-fn ws<F, I, O, E>(inner: F) -> impl Fn(I) -> IResult<I, O, E>
+pub fn ws<F, I, O, E>(inner: F) -> impl Fn(I) -> IResult<I, O, E>
 where
     F: Fn(I) -> IResult<I, O, E>,
     I: InputTake + Clone + PartialEq + for<'a> Compare<&'a [u8; 1]>,
     E: ParseError<I>,
 {
     move |i: I| {
-        let i = alt::<_, _, (), _>((tag(b" "), tag(b"\t")))(i.clone())
+        let i = alt::<_, _, (), _>((tag(b" "), tag(b"\n"), tag(b"\t")))(i.clone())
             .map(|(i, _)| i)
             .unwrap_or(i);
         let (i, res) = inner(i)?;
-        let i = alt::<_, _, (), _>((tag(b" "), tag(b"\t")))(i.clone())
+        let i = alt::<_, _, (), _>((tag(b" "), tag(b"\n"), tag(b"\t")))(i.clone())
             .map(|(i, _)| i)
             .unwrap_or(i);
         Ok((i, res))
@@ -287,7 +287,6 @@ fn expr_filtered(i: &[u8]) -> IResult<&[u8], Expr> {
 
     Ok((i, res))
 }
-
 
 fn expr_unary(i: &[u8]) -> IResult<&[u8], Expr> {
     let (i, (op, expr)) = tuple((opt(alt((tag("!"), tag("-")))), expr_filtered))(i)?;
