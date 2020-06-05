@@ -38,12 +38,16 @@ pub struct App {
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
-        
+        let origin = input.clone(); 
+
         for (idx, token) in tokens.iter().enumerate() {
+            if input.is_empty() {
+                break
+            }
+
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
-
                     match a {
                         Ok((rest, _b)) => input = rest,
                         _ => {
@@ -58,10 +62,10 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     if let Some(parser::Node::Lit(a, b, c)) = next {
                         let result: IResult<&str, &str> = terminated(
                             alphanumeric1,
-                            alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))
+                            alt((tag(""), tag(&format!("{}{}{}", a, b, c)[..])))
                         )(input);
 
-                        if let Ok((rest, hit)) = dbg!(result) {
+                        if let Ok((rest, hit)) = result {
                             h.insert(key.to_string(), hit.to_string());
                             input = rest;
                         } else {
@@ -103,7 +107,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                 _ => {},
             }   
         };
-        
+
         IResult::Ok((input, h))
     }
 }
@@ -147,13 +151,19 @@ impl App {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
             let old = templates.clone();
+            let origin = text.clone();
 
             for (i, tok) in templates.iter().enumerate() {
+                if text.is_empty() {
+                    let err = (text, nom::error::ErrorKind::NonEmpty);
+                    return Err(nom::Err::Error(err));
+                }
+
                 let parsed = match tok {
                     Token::Many(t) => {
-                        let comb= Self::build(vec![*t.clone()]);
-
-                        match many1(comb)(text.trim()) {
+                        let comb = Self::build(vec![*t.clone()]);
+                        
+                        match many1(comb)(text) {
                             Ok((rest, result)) => {
                                 let a: Vec<BTreeMap<String, String>> = result
                                     .iter()
@@ -173,11 +183,11 @@ impl App {
 
                         for (u, _ch) in text.chars().into_iter().enumerate() {
                             let s = &text[u..];
-                            dbg!(s);
-                            if let Ok(_) = dbg!(acc(s)) {
+                            
+                            if let Ok(_) = acc(s) {
                                 result = Some((s, Vec::default()));
                                 break
-                            }
+                            } 
                         }
                         
                         result
@@ -194,9 +204,8 @@ impl App {
                     Token::Tag(ref tag) => {
                         let (_, tbl) = parser::parse_template(tag.as_bytes(), &syn).unwrap();
                         let comb = make_combinator();
-                        let r = comb(tbl, text);
 
-                        match r {
+                        match comb(tbl, text) {
                             Ok((rest, value)) => {
                                 if value.is_empty() {
                                     Some((rest, Vec::default()))
@@ -217,7 +226,7 @@ impl App {
 
                         text = rest;
                     }
-                    _ => { 
+                    _ => {
                         let err = (text, nom::error::ErrorKind::Fix);
                         return Err(nom::Err::Error(err));
                     }
@@ -240,10 +249,13 @@ mod test {
     use nom::IResult;
     use nom::sequence::{preceded, terminated};
     use nom::bytes::complete::tag;
+    use nom::combinator::opt;
 
     #[test]
     fn before()  {
-       let a: IResult<&str, &str> = terminated(alphanumeric1, tag(","))("====\nabc,def");
+       let a: IResult<&str, &str> = terminated(
+           alphanumeric1, 
+           alt((tag(""), tag(","))))("4");
        dbg!(a);
     }
 
@@ -259,12 +271,19 @@ csv:
     - 
       many: 
         tag: "{{i}},{{n}},{{a}},{{e}}\n"
+    -
+      skip:
+    -
+      tag: "total: {{t}}"
 "#;
         let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
         let input = r#"
 id,name,age,email
 ==
 1,2,3,4
+5,6,7,8
+==
+total: 20
 "#;
         let combinate = App::build(app["csv"].templates.clone());
         match combinate(input.trim_start()) {
