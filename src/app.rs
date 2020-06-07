@@ -1,17 +1,14 @@
 use std::collections::BTreeMap;
 use std::option::Option;
 use serde::{Serialize, Deserialize};
-use nom::character::complete::alphanumeric1;
-use nom::branch::alt;
-use nom::sequence::{preceded, terminated};
 use nom::{
     IResult,
-    character::complete::{ anychar },
-    bytes::streaming::{ take_until },
-    bytes::complete::{
-        tag,
-    },
-    multi::{ many1, many_till }
+    branch::alt,
+    bytes::streaming::take_until,
+    bytes::complete::tag,
+    character::complete::{ alphanumeric1, anychar },
+    multi::{ many1, many_till },
+    sequence::terminated,
 };
 
 use crate::parser;
@@ -38,7 +35,6 @@ pub struct App {
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
-        let origin = input.clone(); 
 
         for (idx, token) in tokens.iter().enumerate() {
             if input.is_empty() {
@@ -112,25 +108,6 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
     }
 }
 
-fn get_expr_value<'a>(input: &'a str, next: Option<parser::Node<'a>>) -> Option<(&'a str, &'a str)> {
-    match next {
-        Some(parser::Node::Lit(a, b, c)) => {
-            let result: IResult<&'a str, &'a str> = 
-                take_until(&format!("{}{}{}", a, b, c)[..])(input);
-
-            result.ok()
-        }
-        None => {
-            let result: IResult<&'a str, &'a str> = take_until("\n")(input);
-            match result {
-                Ok((rest, capture)) => Some((rest, capture)),
-                Err(_) => Some((input, input))
-            }
-        },
-        _ => None,
-    }
-}
-
 #[allow(dead_code)]
 pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
@@ -151,7 +128,6 @@ impl App {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
             let old = templates.clone();
-            let origin = text.clone();
 
             for (i, tok) in templates.iter().enumerate() {
                 if text.is_empty() {
@@ -241,23 +217,7 @@ impl App {
 #[allow(unused_imports)]
 mod test {
     use super::*;
-
-    use nom::multi::many0;
     use crate::table;
-    use nom::character::is_alphanumeric;
-    use nom::character::complete::alphanumeric1;
-    use nom::IResult;
-    use nom::sequence::{preceded, terminated};
-    use nom::bytes::complete::tag;
-    use nom::combinator::opt;
-
-    #[test]
-    fn before()  {
-       let a: IResult<&str, &str> = terminated(
-           alphanumeric1, 
-           alt((tag(""), tag(","))))("4");
-       dbg!(a);
-    }
 
     #[test]
     fn csv_parse() {
