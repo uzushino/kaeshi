@@ -28,27 +28,25 @@ fn parse_input(templates: Vec<app::Token>) -> String {
             loop {
                 let mut buf = String::default();
                 let _ = io::stdin().read_line(&mut buf);
+                let l = templates.last().unwrap().clone();
                 let combinator = 
-                    app::App::build(vec![templates.last().unwrap().clone()]);
+                    app::App::build(vec![l]);
                 let r = combinator(buf.as_str());
-
+                
+                result = format!("{}{}", result, buf);
                 if let Ok((_rest, _rows)) = r {
-                    result = format!("{}{}", result, buf);
                     break;
-                } else {
-                    result = format!("{}{}", result, buf);
                 }
             }
         },
         _ => {}
     }
 
-    result.clone()
+    dbg!(result.clone())
 }
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
     let app = app::App::load_from_file(opt.file.as_str())?; 

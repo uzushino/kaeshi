@@ -6,8 +6,8 @@ use nom::{
     branch::alt,
     bytes::streaming::take_until,
     bytes::complete::tag,
-    character::complete::{ alphanumeric1, anychar },
-    multi::{ many1, many_till },
+    character::complete::alphanumeric1,
+    multi::many1,
     sequence::terminated,
 };
 
@@ -81,25 +81,6 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     }
                 },
-                /*
-                parser::Node::Expr(_, parser::Expr::Filter("truncate", arguments)) => {
-                    match (&arguments[0], &arguments[1]) {
-                        (parser::Expr::Var(key), parser::Expr::NumLit(n)) => {
-                            if let Ok(n) = n.parse() {
-                                let next = tokens.get(idx + 1).map(|t| t.clone());
-                                let (rest, hit) = get_expr_value(input, next).unwrap();
-                                let mut s = String::from(hit);
-
-                                s.truncate(n);
-                                h.insert(key.to_string(), s);
-
-                                input = rest;
-                            }
-                        }
-                        _ => {}
-                    }
-                },
-                */
                 _ => {},
             }   
         };
@@ -138,22 +119,19 @@ impl App {
                 let parsed = match tok {
                     Token::Many(t) => {
                         let comb = Self::build(vec![*t.clone()]);
-                        
-                        match many1(comb)(text) {
-                            Ok((rest, result)) => {
-                                let a: Vec<BTreeMap<String, String>> = result
+                        many1(comb)(text)
+                            .map(|(rest, result)| {
+                                let a  = result
                                     .iter()
                                     .flatten()
                                     .map(|s| s.clone())
                                     .collect::<Vec<_>>();
-
-                                Some((rest, a.clone()))
-                            },
-                            _ => None
-                        }
+                                (rest, a)
+                            })
+                            .ok()
                     }
                     Token::Skip => {
-                        let remain = &old[(i+1)..(i+2)];
+                        let remain = &old[(i+1)..];
                         let acc = Self::build(remain.to_vec());
                         let mut result = None;
 
@@ -168,30 +146,19 @@ impl App {
                         
                         result
                     }
-                    Token::While(t) => {
-                        let acc = Self::build(vec![*t.clone()]);
-                        let r = many_till(anychar, acc)(text.trim());
-
-                        match r {
-                            Ok((rest, _b)) => Some((rest, Vec::default())),
-                            _ => None
-                        }
-                    }
                     Token::Tag(ref tag) => {
-                        let (_, tbl) = parser::parse_template(tag.as_bytes(), &syn).unwrap();
-                        let comb = make_combinator();
-
-                        match comb(tbl, text) {
-                            Ok((rest, value)) => {
+                        let (_, tokens) = parser::parse_template(tag.as_bytes(), &syn).unwrap();
+                        make_combinator()(tokens, text)
+                            .map(|(rest, value)| {
                                 if value.is_empty() {
-                                    Some((rest, Vec::default()))
+                                    (rest, Vec::default())
                                 } else {
-                                    Some((rest, vec![value]))
+                                    (rest, vec![value])
                                 }
-                            },
-                            _ => None
-                        }
-                    },
+                            })
+                            .ok()
+                   },
+                   _ => None
                 };
                
                 match parsed {
