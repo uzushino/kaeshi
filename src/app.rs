@@ -214,10 +214,8 @@ total: 20
 "#;
         let combinate = App::build(app["csv"].templates.clone());
         match combinate(input.trim_start()) {
-            Ok((_rest, rows)) => {
-                table::printstd(&rows);
-            },
-            Err(e) =>  { dbg!(e); }
+            Ok((_rest, rows)) => table::printstd(&rows),
+            Err(_) =>  assert!(false)
         }
     }
 }

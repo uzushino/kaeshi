@@ -13,24 +13,22 @@ struct Opt {
     pub file: String,
 }
 
-fn parse_input(templates: Vec<app::Token>) -> String {
+fn parse_input(templates: Vec<app::Token>) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
-    let i = input.as_str();
     let mut result = String::default();
     let head = 
         app::App::build(vec![templates[0].clone()]);
 
-    match head(i) {
+    match head(input.as_str()) {
         Ok((_rest, _rows)) =>  {
             result = input.clone();
-
+            
             loop {
                 let mut buf = String::default();
                 let _ = io::stdin().read_line(&mut buf);
-                let l = templates.last().unwrap().clone();
-                let combinator = 
-                    app::App::build(vec![l]);
+                let l = templates.last()?;
+                let combinator = app::App::build(vec![l.clone()]);
                 let r = combinator(buf.as_str());
                 
                 result = format!("{}{}", result, buf);
@@ -42,7 +40,7 @@ fn parse_input(templates: Vec<app::Token>) -> String {
         _ => {}
     }
 
-    dbg!(result.clone())
+    Some(result)
 }
 
 fn main() -> anyhow::Result<()> {
@@ -58,7 +56,7 @@ fn main() -> anyhow::Result<()> {
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
                 
-                match combinate(&input) {
+                match combinate(&input.unwrap()) {
                     Ok((_rest, rows)) => table::printstd(&rows),
                     _ => {}
                 }
