@@ -20,7 +20,7 @@ fn parse_input(templates: Vec<app::Token>) -> Option<String> {
     let head = 
         app::App::build(vec![templates[0].clone()]);
 
-    match dbg!(head(input.as_str())) {
+    match head(input.as_str()) {
         Ok((_rest, _rows)) =>  {
             result = input.clone();
             
