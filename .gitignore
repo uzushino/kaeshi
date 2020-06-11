@@ -3,3 +3,4 @@
 **/*.rs.bk
 
 *.yml
+sample.log

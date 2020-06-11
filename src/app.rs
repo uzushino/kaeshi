@@ -3,10 +3,13 @@ use std::option::Option;
 use serde::{Serialize, Deserialize};
 use nom::{
     IResult,
+    AsChar, InputTakeAtPosition,
     branch::alt,
     bytes::streaming::take_until,
     bytes::complete::tag,
-    character::complete::alphanumeric1,
+    character::complete::{
+        alphanumeric1, anychar,
+    },
     multi::many1,
     sequence::terminated,
 };
@@ -32,6 +35,18 @@ pub struct App {
     filters: Option<Vec<String>>,
 }
 
+pub fn expr_char<T, E: nom::error::ParseError<T>>(input: T) -> IResult<T, T, E>
+where
+  T: InputTakeAtPosition + Clone,
+  <T as InputTakeAtPosition>::Item: AsChar + Clone,
+{
+  input.split_at_position1_complete(|item| {
+    let it = dbg!(item.as_char());
+    !(it != '\n')
+  }, nom::error::ErrorKind::AlphaNumeric)
+}
+
+
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
@@ -40,7 +55,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
             if input.is_empty() {
                 break
             }
-
+            
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
@@ -56,10 +71,22 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     let next = tokens.get(idx + 1);
                     
                     if let Some(parser::Node::Lit(a, b, c)) = next {
+                        /*
                         let result: IResult<&str, &str> = terminated(
-                            alphanumeric1,
+                            expr_char,
                             alt((tag(""), tag(&format!("{}{}{}", a, b, c)[..])))
                         )(input);
+                        */
+                        let err = (input, nom::error::ErrorKind::TakeUntil);
+                        let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
+                        for (u, _ch) in input.chars().into_iter().enumerate() {
+                            let s = &input[u..];
+                            let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+                            if let Ok(_) = t {
+                                result = Ok((&input[u..input.len()], &input[0..u]));
+                                break
+                            } 
+                        }
 
                         if let Ok((rest, hit)) = result {
                             h.insert(key.to_string(), hit.to_string());
