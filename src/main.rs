@@ -23,7 +23,10 @@ fn parse_input(templates: Vec<app::Token>) -> Option<String> {
     match head(input.as_str()) {
         Ok((_rest, _rows)) =>  {
             result = input.clone();
-            
+            if templates.len() < 2 {
+                return Some(result);
+            }
+
             loop {
                 let mut buf = String::default();
                 let _ = io::stdin().read_line(&mut buf);
@@ -55,8 +58,8 @@ fn main() -> anyhow::Result<()> {
                 let templates = ap.templates.clone();
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
-                
-                match combinate(&input.unwrap()) {
+                dbg!(&input) ;
+                match dbg!(combinate(&input.unwrap())) {
                     Ok((_rest, rows)) => table::printstd(&rows),
                     _ => {}
                 }

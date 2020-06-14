@@ -136,7 +136,7 @@ impl App {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
             let old = templates.clone();
-
+            
             for (i, tok) in templates.iter().enumerate() {
                 if text.is_empty() {
                     let err = (text, nom::error::ErrorKind::NonEmpty);
