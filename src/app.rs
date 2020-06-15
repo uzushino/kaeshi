@@ -67,16 +67,17 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     }
                 },
+                parser::Node::Expr(_, parser::Expr::Filter("trim", vars)) => {
+                    if let Some(parser::Expr::Var(t)) = vars.first() {
+                        if let Some(v) = h.get_mut(t.clone()) {
+                            *v = v.trim().to_string();
+                        }
+                    }
+                },
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
                     let next = tokens.get(idx + 1);
                     
                     if let Some(parser::Node::Lit(a, b, c)) = next {
-                        /*
-                        let result: IResult<&str, &str> = terminated(
-                            expr_char,
-                            alt((tag(""), tag(&format!("{}{}{}", a, b, c)[..])))
-                        )(input);
-                        */
                         let err = (input, nom::error::ErrorKind::TakeUntil);
                         let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
                         for (u, _ch) in input.chars().into_iter().enumerate() {
@@ -96,9 +97,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                             return Err(nom::Err::Error(err));
                         }
                     } else {
-                        let result: IResult<&'a str, &'a str> = 
-                            take_until("\n")(input);
-
+                        let result: IResult<&'a str, &'a str> = take_until("\n")(input);
                         if let Ok((rest, capture))  = result {
                             h.insert(key.to_string(), capture.to_string());
                             input = rest;
@@ -175,6 +174,7 @@ impl App {
                     }
                     Token::Tag(ref tag) => {
                         let (_, tokens) = parser::parse_template(tag.as_bytes(), &syn).unwrap();
+
                         make_combinator()(tokens, text)
                             .map(|(rest, value)| {
                                 if value.is_empty() {
@@ -228,7 +228,7 @@ csv:
     -
       skip:
     -
-      tag: "total: {{t}}"
+      tag: "total:{{t|trim}}"
 "#;
         let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
         let input = r#"
