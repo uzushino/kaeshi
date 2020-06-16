@@ -58,8 +58,8 @@ fn main() -> anyhow::Result<()> {
                 let templates = ap.templates.clone();
                 let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
-                dbg!(&input) ;
-                match dbg!(combinate(&input.unwrap())) {
+               
+                match combinate(&input.unwrap()) {
                     Ok((_rest, rows)) => table::printstd(&rows),
                     _ => {}
                 }

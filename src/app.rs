@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::option::Option;
-use serde::{Serialize, Deserialize};
+use serde::{ Deserialize, Serialize };
 use nom::{
     IResult,
     AsChar, InputTakeAtPosition,
@@ -15,8 +15,9 @@ use nom::{
 };
 
 use crate::parser;
+use crate::table;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub enum Token {
     #[serde(rename = "tag")]
     Tag(String),
@@ -28,9 +29,16 @@ pub enum Token {
     While(Box<Token>),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
+pub enum Output {
+    Table,
+    Json
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct App {
     pub templates: Vec<Token>,
+    output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
 }
@@ -128,6 +136,13 @@ impl App {
     
     pub fn load_from_str(content: impl ToString) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
         serde_yaml::from_str(content.to_string().as_str())
+    }
+
+    pub fn print(&self, rows: &Vec<BTreeMap<String, String>>) {
+        match self.output {
+            Some(Output::Json) => table::printstd(rows),
+            Some(Output::Table) | None => table::printstd(rows),
+        }
     }
 
     pub fn build<'a>(templates: Vec<Token>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
