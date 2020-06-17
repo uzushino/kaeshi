@@ -60,7 +60,7 @@ fn main() -> anyhow::Result<()> {
                 let combinate = app::App::build(templates.clone());
                
                 match combinate(&input.unwrap()) {
-                    Ok((_rest, rows)) => table::printstd(&rows),
+                    Ok((_rest, rows)) => ap.print(&rows),
                     _ => {}
                 }
             }
