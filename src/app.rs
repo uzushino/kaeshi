@@ -22,7 +22,7 @@ pub enum Token {
     #[serde(rename = "tag")]
     Tag(String),
     #[serde(rename = "many")]
-    Many(Box<Token>),
+    Many(Vec<Box<Token>>),
     #[serde(rename = "skip")]
     Skip,
     #[serde(rename = "while")]
@@ -159,7 +159,9 @@ impl App {
 
                 let parsed = match tok {
                     Token::Many(t) => {
-                        let comb = Self::build(vec![*t.clone()]);
+                        let ts = t.iter().map(|tmpl| *tmpl.clone()).collect();
+                        let comb = Self::build(ts);
+
                         many1(comb)(text)
                             .map(|(rest, result)| {
                                 let a  = result
@@ -239,7 +241,7 @@ csv:
       skip:
     - 
       many: 
-        tag: "{{i}},{{n}},{{a}},{{e}}\n"
+        - tag: "{{i}},{{n}},{{a}},{{e}}\n"
     -
       skip:
     -
@@ -255,6 +257,7 @@ id,name,age,email
 total: 20
 "#;
         let combinate = App::build(app["csv"].templates.clone());
+
         match combinate(input.trim_start()) {
             Ok((_rest, rows)) => table::printstd(&rows),
             Err(_) =>  assert!(false)
