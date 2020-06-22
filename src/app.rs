@@ -30,6 +30,12 @@ pub enum Token {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub enum Condition {
+    Start(Token),
+    End(Token)
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub enum Output {
     Table,
     Json
