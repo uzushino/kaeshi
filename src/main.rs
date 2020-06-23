@@ -13,12 +13,12 @@ struct Opt {
     pub file: String,
 }
 
-fn parse_input(templates: Vec<app::Token>) -> Option<String> {
+fn parse_input(ap: &app::App) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
     let mut result = String::default();
     let head = 
-        app::App::build(vec![templates[0].clone()]);
+        app::App::build(ap.start);
 
     match head(input.as_str()) {
         Ok((_rest, _rows)) =>  {
@@ -55,8 +55,8 @@ fn main() -> anyhow::Result<()> {
     let thandle = thread::spawn(move || {
         while running.load(Ordering::Relaxed) {
             for (_k, ap) in app.iter() {
+                let input = parse_input(&ap);
                 let templates = ap.templates.clone();
-                let input = parse_input(templates.clone());
                 let combinate = app::App::build(templates.clone());
                
                 match combinate(&input.unwrap()) {

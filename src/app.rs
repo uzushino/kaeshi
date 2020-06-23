@@ -47,6 +47,7 @@ pub struct App {
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
+    conditions: Option<Vec<Token>>,
 }
 
 pub fn expr_char<T, E: nom::error::ParseError<T>>(input: T) -> IResult<T, T, E>
