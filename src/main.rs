@@ -17,21 +17,18 @@ fn parse_input(ap: &app::App) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
     let mut result = String::default();
-    let head = 
-        app::App::build(ap.start);
+
+
+    let head = app::App::build(vec![ap.conditions.start.clone()]);
 
     match head(input.as_str()) {
         Ok((_rest, _rows)) =>  {
             result = input.clone();
-            if templates.len() < 2 {
-                return Some(result);
-            }
-
+            
             loop {
                 let mut buf = String::default();
                 let _ = io::stdin().read_line(&mut buf);
-                let l = templates.last()?;
-                let combinator = app::App::build(vec![l.clone()]);
+                let combinator = app::App::build(vec![ap.conditions.end.clone()]);
                 let r = combinator(buf.as_str());
                 
                 result = format!("{}{}", result, buf);

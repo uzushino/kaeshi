@@ -30,15 +30,15 @@ pub enum Token {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub enum Condition {
-    Start(Token),
-    End(Token)
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub enum Output {
     Table,
     Json
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct Condition {
+    pub start: Token,
+    pub end: Token,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -47,7 +47,7 @@ pub struct App {
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
-    conditions: Option<Vec<Token>>,
+    pub conditions: Condition,
 }
 
 pub fn expr_char<T, E: nom::error::ParseError<T>>(input: T) -> IResult<T, T, E>
