@@ -14,8 +14,8 @@ use nom::{
     sequence::terminated,
 };
 
-use crate::parser;
-use crate::table;
+use tempra::parser;
+use tempra::table;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum Token {
@@ -235,7 +235,7 @@ impl App {
 #[allow(unused_imports)]
 mod test {
     use super::*;
-    use crate::table;
+    use tempra::table;
 
     #[test]
     fn csv_parse() {

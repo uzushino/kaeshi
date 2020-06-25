@@ -5,8 +5,6 @@ use std::thread;
 use structopt::StructOpt;
 
 mod app;
-mod parser;
-mod table;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
