@@ -1,6 +1,4 @@
 use std::collections::{ HashSet, BTreeMap };
-use serde::Serialize;
-use serde_json::{Result, Value};
 use prettytable::{ Table, Cell, Row };
 
 pub fn printjson(rows: &Vec<BTreeMap<String, String>>) {

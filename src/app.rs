@@ -1,17 +1,12 @@
 use std::collections::BTreeMap;
 use std::option::Option;
-use serde::{ Deserialize, Serialize };
+use serde::Deserialize;
 use nom::{
     IResult,
-    AsChar, InputTakeAtPosition,
     branch::alt,
     bytes::streaming::take_until,
     bytes::complete::tag,
-    character::complete::{
-        alphanumeric1, anychar,
-    },
     multi::many1,
-    sequence::terminated,
 };
 
 use tempra::parser;
@@ -50,18 +45,6 @@ pub struct App {
     pub conditions: Condition,
 }
 
-pub fn expr_char<T, E: nom::error::ParseError<T>>(input: T) -> IResult<T, T, E>
-where
-  T: InputTakeAtPosition + Clone,
-  <T as InputTakeAtPosition>::Item: AsChar + Clone,
-{
-  input.split_at_position1_complete(|item| {
-    let it = dbg!(item.as_char());
-    !(it != '\n')
-  }, nom::error::ErrorKind::AlphaNumeric)
-}
-
-
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
@@ -74,6 +57,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
+
                     match a {
                         Ok((rest, _b)) => input = rest,
                         _ => {
@@ -95,6 +79,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     if let Some(parser::Node::Lit(a, b, c)) = next {
                         let err = (input, nom::error::ErrorKind::TakeUntil);
                         let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
+                        
                         for (u, _ch) in input.chars().into_iter().enumerate() {
                             let s = &input[u..];
                             let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
@@ -188,7 +173,7 @@ impl App {
                         for (u, _ch) in text.chars().into_iter().enumerate() {
                             let s = &text[u..];
                             
-                            if let Ok(_) = acc(s) {
+                            if acc(s).is_ok() {
                                 result = Some((s, Vec::default()));
                                 break
                             } 
