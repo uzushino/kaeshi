@@ -15,27 +15,21 @@ fn parse_input(ap: &app::App) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
     let mut result = String::default();
-
-
     let head = app::App::build(vec![ap.conditions.start.clone()]);
 
-    match head(input.as_str()) {
-        Ok((_rest, _rows)) =>  {
-            result = input.clone();
+    if head(input.as_str()).is_ok() {
+        result = input.clone();
+        loop {
+            let mut buf = String::default();
+            let _ = io::stdin().read_line(&mut buf);
+            let combinator = app::App::build(vec![ap.conditions.end.clone()]);
+            let r = combinator(buf.as_str());
             
-            loop {
-                let mut buf = String::default();
-                let _ = io::stdin().read_line(&mut buf);
-                let combinator = app::App::build(vec![ap.conditions.end.clone()]);
-                let r = combinator(buf.as_str());
-                
-                result = format!("{}{}", result, buf);
-                if let Ok((_rest, _rows)) = r {
-                    break;
-                }
+            result = format!("{}{}", result, buf);
+            if r.is_ok() {
+                break;
             }
-        },
-        _ => {}
+        }
     }
 
     Some(result)
@@ -51,8 +45,7 @@ fn main() -> anyhow::Result<()> {
         while running.load(Ordering::Relaxed) {
             for (_k, ap) in app.iter() {
                 let input = parse_input(&ap);
-                let templates = ap.templates.clone();
-                let combinate = app::App::build(templates.clone());
+                let combinate = app::App::build(ap.templates.clone());
                
                 match combinate(&input.unwrap()) {
                     Ok((_rest, rows)) => ap.print(&rows),

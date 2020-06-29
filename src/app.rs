@@ -61,7 +61,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                     match a {
                         Ok((rest, _b)) => input = rest,
                         _ => {
-                            let err = (input, nom::error::ErrorKind::Eof);
+                            let err = nom::error::make_error(input, nom::error::ErrorKind::Eof);
                             return Err(nom::Err::Error(err));
                         }
                     }
