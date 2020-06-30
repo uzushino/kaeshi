@@ -31,7 +31,7 @@ pub enum Output {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Condition {
+pub struct Range {
     pub start: Token,
     pub end: Token,
 }
@@ -42,7 +42,7 @@ pub struct App {
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
-    pub conditions: Condition,
+    pub conditions: Range,
 }
 
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
