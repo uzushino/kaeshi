@@ -42,7 +42,7 @@ pub struct App {
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
-    pub conditions: Range,
+    pub conditions: Option<Range>,
 }
 
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {

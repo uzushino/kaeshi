@@ -15,14 +15,22 @@ fn parse_input(ap: &app::App) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
     let mut result = String::default();
-    let head = app::App::build(vec![ap.conditions.start.clone()]);
+    let head = if let Some(ref condition) = ap.conditions {
+        app::App::build(vec![condition.start.clone()])
+    } else {
+        app::App::build(vec![ap.templates[0].clone()])
+    };
 
     if head(input.as_str()).is_ok() {
         result = input.clone();
         loop {
             let mut buf = String::default();
             let _ = io::stdin().read_line(&mut buf);
-            let combinator = app::App::build(vec![ap.conditions.end.clone()]);
+            let combinator = if let Some(ref condition) = ap.conditions {
+                app::App::build(vec![condition.end.clone()])
+            } else {
+                app::App::build(vec![ap.templates[0].clone()])
+            };
             let r = combinator(buf.as_str());
             
             result = format!("{}{}", result, buf);
