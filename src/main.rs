@@ -22,7 +22,12 @@ fn parse_input(ap: &app::App) -> Option<String> {
     };
 
     if head(input.as_str()).is_ok() {
+        if ap.templates.len() == 1 {
+            return Some(input.clone());
+        }
+
         result = input.clone();
+
         loop {
             let mut buf = String::default();
             let _ = io::stdin().read_line(&mut buf);
