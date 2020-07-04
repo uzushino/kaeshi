@@ -13,16 +13,23 @@ use tempra::parser;
 use tempra::table;
 
 #[derive(Debug, Deserialize, Clone)]
-pub enum Token {
-    #[serde(rename = "tag")]
-    Tag(String),
-    #[serde(rename = "many")]
-    Many(Vec<Box<Token>>),
-    #[serde(rename = "skip")]
-    Skip,
-    #[serde(rename = "while")]
-    While(Box<Token>),
+pub struct TokenExpr {
+    tag: String,
+    many: Option<bool>,
+    line: Option<i64>,
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub enum TokenKey {
+    #[serde(rename = "tag")]
+    Tag,
+    #[serde(rename = "many")]
+    Many,
+    #[serde(rename = "line")]
+    Line,
+}
+
+pub type Token = BTreeMap<TokenKey, TokenExpr>;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum Output {
@@ -31,18 +38,11 @@ pub enum Output {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Range {
-    pub start: Token,
-    pub end: Token,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct App {
-    pub templates: Vec<Token>,
+    templates: Vec<Token>,
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
-    pub conditions: Option<Range>,
 }
 
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
@@ -149,7 +149,13 @@ impl App {
                     return Err(nom::Err::Error(err));
                 }
 
-                let parsed = match tok {
+                for (k, v) in tok {
+                    match k {
+
+                    }
+                }
+
+                let parsed = match tok.keys() {
                     Token::Many(t) => {
                         let ts = t.iter().map(|tmpl| *tmpl.clone()).collect();
                         let comb = Self::build(ts);
@@ -232,8 +238,8 @@ csv:
     -
       skip:
     - 
-      many: 
-        - tag: "{{i}},{{n}},{{a}},{{e}}\n"
+      tag: "{{i}},{{n}},{{a}},{{e}}\n"
+      many: true
     -
       skip:
     -
@@ -247,6 +253,33 @@ id,name,age,email
 5,6,7,8
 ==
 total: 20
+"#;
+        let combinate = App::build(app["csv"].templates.clone());
+
+        match combinate(input.trim_start()) {
+            Ok((_rest, rows)) => table::printstd(&rows),
+            Err(_) =>  assert!(false)
+        }
+    }
+    
+    #[test]
+    fn test_many() {
+        const YML: &str = r#"
+csv:
+  templates:
+    - 
+      tag: "id,name,age,email\n"
+    -
+      tag: "{{i}},{{n}},{{a}},{{e}}\n"
+      many: true
+      count: 1-5
+
+"#;
+        let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
+        let input = r#"
+id,name,age,email
+1,2,3,4
+5,6,7,8
 "#;
         let combinate = App::build(app["csv"].templates.clone());
 
