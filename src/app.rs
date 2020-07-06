@@ -8,6 +8,10 @@ use nom::{
     bytes::complete::tag,
     multi::many1,
 };
+use std::sync::mpsc::{ self, Sender };
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
+use std::process::{Command, Stdio};
+use std::thread::{self, JoinHandle};
 
 use tempra::parser;
 use tempra::table;
@@ -15,11 +19,13 @@ use tempra::table;
 #[derive(Debug, Deserialize, Clone)]
 pub struct TokenExpr {
     tag: String,
+
+    // Many
     many: Option<bool>,
     line: Option<i64>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TokenKey {
     #[serde(rename = "tag")]
     Tag,
@@ -37,9 +43,14 @@ pub enum Output {
     Json
 }
 
+pub enum InputToken {
+    Channel(String),
+    EOF,
+}
+
 #[derive(Debug, Deserialize, Clone)]
-pub struct App {
-    templates: Vec<Token>,
+pub struct AppConfig {
+    pub templates: Vec<Token>,
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
@@ -120,21 +131,47 @@ pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
 }
 
-impl App {
-    pub fn load_from_file<'a>(file: &'a str) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
-        let contents = std::fs::read_to_string(file).unwrap();
-        serde_yaml::from_str(&contents)
-    }
-    
-    pub fn load_from_str(content: impl ToString) -> Result<BTreeMap<String, App>, serde_yaml::Error> {
-        serde_yaml::from_str(content.to_string().as_str())
-    }
+pub struct App<'a> {
+    tx: Sender<InputToken>,
+    handler: Option<JoinHandle<()>>,
 
-    pub fn print(&self, rows: &Vec<BTreeMap<String, String>>) {
-        match self.output {
-            Some(Output::Json) => table::printstd(rows),
-            Some(Output::Table) | None => table::printstd(rows),
-        }
+    config: &'a AppConfig,
+}
+
+impl<'a> App<'a> {
+    pub fn new_with_config(app: &AppConfig) -> anyhow::Result<App> {
+        let (tx, rx) = mpsc::channel();
+
+        let handler = thread::spawn(move || {
+            let mut writer = BufWriter::new(io::stdout());
+
+            loop {
+                match rx.recv() {
+                    Ok(token) => match token {
+                        InputToken::Channel(msg) => {
+                            writer
+                                .write(msg.as_bytes())
+                                .unwrap();
+                        }
+                        InputToken::EOF => {
+                            break;
+                        }
+                        _ => {
+                            panic!("Exit with bug.");
+                        }
+                    },
+                    Err(e) => {
+                        anyhow::anyhow!(&e.to_string());
+                        break;
+                    }
+                }
+            }
+        });
+
+        Ok(App {
+            tx,
+            handler: Some(handler),
+        })
     }
 
     pub fn build<'a>(templates: Vec<Token>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
@@ -147,12 +184,6 @@ impl App {
                 if text.is_empty() {
                     let err = (text, nom::error::ErrorKind::NonEmpty);
                     return Err(nom::Err::Error(err));
-                }
-
-                for (k, v) in tok {
-                    match k {
-
-                    }
                 }
 
                 let parsed = match tok.keys() {
@@ -228,40 +259,6 @@ mod test {
     use super::*;
     use tempra::table;
 
-    #[test]
-    fn csv_parse() {
-        const YML: &str = r#"
-csv:
-  templates:
-    - 
-      tag: "id,name,age,email\n"
-    -
-      skip:
-    - 
-      tag: "{{i}},{{n}},{{a}},{{e}}\n"
-      many: true
-    -
-      skip:
-    -
-      tag: "total:{{t|trim}}"
-"#;
-        let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
-        let input = r#"
-id,name,age,email
-==
-1,2,3,4
-5,6,7,8
-==
-total: 20
-"#;
-        let combinate = App::build(app["csv"].templates.clone());
-
-        match combinate(input.trim_start()) {
-            Ok((_rest, rows)) => table::printstd(&rows),
-            Err(_) =>  assert!(false)
-        }
-    }
-    
     #[test]
     fn test_many() {
         const YML: &str = r#"
