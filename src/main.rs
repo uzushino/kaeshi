@@ -1,8 +1,9 @@
-use std::io;
+use log::{ debug, error };
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use structopt::StructOpt;
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 
 mod app;
 
@@ -11,6 +12,7 @@ struct Opt {
     pub file: String,
 }
 
+/*
 fn parse_input(ap: &app::App) -> Option<String> {
     let mut input = String::default();
     let _ = io::stdin().read_line(&mut input).ok();
@@ -47,33 +49,40 @@ fn parse_input(ap: &app::App) -> Option<String> {
 
     Some(result)
 }
+*/
 
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let opt = Opt::from_args();
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-    let app = app::App::load_from_file(opt.file.as_str())?; 
+    let contents = std::fs::read_to_string(opt.file)?;
+    debug!("{}", contents);
+    let config: app::AppConfig = serde_yaml::from_str(&contents)?;
+    let app = app::App::new_with_config(&config)?; 
 
-    let thandle = thread::spawn(move || {
-        while running.load(Ordering::Relaxed) {
-            for (_k, ap) in app.iter() {
-                let input = parse_input(&ap);
-                let combinate = app::App::build(ap.templates.clone());
-               
-                match combinate(&input.unwrap()) {
-                    Ok((_rest, rows)) => ap.print(&rows),
-                    _ => {}
+    let stdin = std::io::stdin();
+
+    loop {
+        let mut buf = Vec::with_capacity(1024usize);
+
+        match stdin.lock().read_until(b'\n', &mut buf) {
+            Ok(n) => {
+                let line = String::from_utf8_lossy(&buf).to_string();
+                debug!("input line: {}", line);
+
+                if n == 0 {
+                    app.send_byte(b'\0')?;
+                    break;
                 }
+                
+                app.send_string(line.to_string())?;
             }
+            Err(e) => {
+                error!("{}", e.to_string());
+                break;
+            },
         }
-    });
-
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::Relaxed);
-    })
-    .expect("Error setting Ctrl-C handler");
-
-    let _ = thandle.join();
+    }
 
     Ok(())
 }

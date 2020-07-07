@@ -12,6 +12,7 @@ use std::sync::mpsc::{ self, Sender };
 use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
+use log::{ debug, error };
 
 use tempra::parser;
 use tempra::table;
@@ -22,20 +23,12 @@ pub struct TokenExpr {
 
     // Many
     many: Option<bool>,
-    line: Option<i64>,
+
+    // Count
+    count: Option<i64>,
 }
 
-#[derive(Debug, Deserialize, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub enum TokenKey {
-    #[serde(rename = "tag")]
-    Tag,
-    #[serde(rename = "many")]
-    Many,
-    #[serde(rename = "line")]
-    Line,
-}
-
-pub type Token = BTreeMap<TokenKey, TokenExpr>;
+pub type Token = TokenExpr;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum Output {
@@ -44,6 +37,7 @@ pub enum Output {
 }
 
 pub enum InputToken {
+    Byte(u8),
     Channel(String),
     EOF,
 }
@@ -139,21 +133,25 @@ pub struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    pub fn new_with_config(app: &AppConfig) -> anyhow::Result<App> {
+    pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
         let (tx, rx) = mpsc::channel();
 
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
 
+            let rx = rx.iter().peekable();
             loop {
-                match rx.recv() {
+                match rx.next() {
                     Ok(token) => match token {
                         InputToken::Channel(msg) => {
+                            debug!("receive cannnel: {}", msg);
+
                             writer
                                 .write(msg.as_bytes())
                                 .unwrap();
                         }
                         InputToken::EOF => {
+                            debug!("receive eof");
                             break;
                         }
                         _ => {
@@ -161,7 +159,7 @@ impl<'a> App<'a> {
                         }
                     },
                     Err(e) => {
-                        anyhow::anyhow!(&e.to_string());
+                        anyhow::anyhow!(e.to_string());
                         break;
                     }
                 }
@@ -170,11 +168,25 @@ impl<'a> App<'a> {
 
         Ok(App {
             tx,
+            config,
             handler: Some(handler),
         })
     }
 
-    pub fn build<'a>(templates: Vec<Token>) -> impl Fn(&'a str) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
+    pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {
+        self.tx.send(InputToken::Byte(b))?;
+        
+        Ok(())
+    }
+    
+    pub fn send_string(&self, txt: String) -> anyhow::Result<()> {
+        self.tx.send(InputToken::Channel(txt))?;
+        
+        Ok(())
+    }
+
+    /*
+    pub fn build<'b>(templates: Vec<Token>) -> impl Fn(&'b str) -> IResult<&'b str, Vec<BTreeMap<String, String>>> {
         move |mut text: &str| {
             let syn = parser::Syntax::default();
             let mut results= Vec::default();
@@ -252,6 +264,7 @@ impl<'a> App<'a> {
             Ok((text, results))
         }
     }
+    */
 }
 
 #[allow(unused_imports)]
@@ -262,14 +275,12 @@ mod test {
     #[test]
     fn test_many() {
         const YML: &str = r#"
-csv:
-  templates:
-    - 
-      tag: "id,name,age,email\n"
-    -
-      tag: "{{i}},{{n}},{{a}},{{e}}\n"
-      many: true
-      count: 1-5
+templates:
+  - 
+    tag: "id,name,age,email\n"
+  -
+    tag: "{{i}},{{n}},{{a}},{{e}}\n"
+    count: 5
 
 "#;
         let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
