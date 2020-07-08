@@ -136,33 +136,19 @@ impl<'a> App<'a> {
     pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
         let (tx, rx) = mpsc::channel();
 
+        let templates = std::cell::RefCell::new(config.templates.clone());
+
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
+            let mut rx_recive = rx.iter().peekable();
 
-            let rx = rx.iter().peekable();
             loop {
-                match rx.next() {
-                    Ok(token) => match token {
-                        InputToken::Channel(msg) => {
-                            debug!("receive cannnel: {}", msg);
+                debug!("event loop.");
 
-                            writer
-                                .write(msg.as_bytes())
-                                .unwrap();
-                        }
-                        InputToken::EOF => {
-                            debug!("receive eof");
-                            break;
-                        }
-                        _ => {
-                            panic!("Exit with bug.");
-                        }
-                    },
-                    Err(e) => {
-                        anyhow::anyhow!(e.to_string());
-                        break;
-                    }
+                for token in templates.borrow().iter() {
+                
                 }
+
             }
         });
 
