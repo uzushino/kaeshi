@@ -8,11 +8,13 @@ use nom::{
     bytes::complete::tag,
     multi::many1,
 };
-use std::sync::mpsc::{ self, Sender };
+//use std::sync::mpsc::{ self, Sender };
 use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
 use log::{ debug, error };
+
+use crossbeam_channel::{ self, unbounded, bounded, Sender, Receiver };
 
 use tempra::parser;
 use tempra::table;
@@ -30,12 +32,42 @@ pub struct TokenExpr {
 
 pub type Token = TokenExpr;
 
+impl TokenExpr {
+    pub fn evaluate(&self, rx: Receiver<InputToken>, syn: &parser::Syntax) {
+        match rx.recv() {
+            Ok(InputToken::Channel(text)) => {
+                if let Ok((_, result)) = s {
+                    for token in rest.iter() {
+
+                    }
+                }
+            },
+            _ => {
+            }
+        }
+    }
+
+    pub fn parse(&self, text: &str, syn: &parser::Syntax) {
+        let (_, tokens) = parser::parse_template(self.tag.as_bytes(), &syn).unwrap();
+
+        make_combinator()(tokens, text.as_str())
+            .map(|(rest, value)| {
+                if value.is_empty() {
+                    (rest, Vec::default())
+                } else {
+                    (rest, vec![value])
+                }
+            })
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub enum Output {
     Table,
     Json
 }
 
+#[derive(Debug, Deserialize, Clone)]
 pub enum InputToken {
     Byte(u8),
     Channel(String),
@@ -127,6 +159,7 @@ pub fn slice_to_string(s: &[u8]) -> String {
 
 pub struct App<'a> {
     tx: Sender<InputToken>,
+
     handler: Option<JoinHandle<()>>,
 
     config: &'a AppConfig,
@@ -134,28 +167,34 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
-        let (tx, rx) = mpsc::channel();
-
-        let templates = std::cell::RefCell::new(config.templates.clone());
+        let (tx, rx): (Sender<InputToken>, Receiver<InputToken>) = unbounded();
+        let templates = config.templates.clone();
 
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
-            let mut rx_recive = rx.iter().peekable();
+            let first = templates.first().unwrap();
+            let rest= &templates[0..];
+            let syn = parser::Syntax::default();
 
             loop {
-                debug!("event loop.");
+                match rx.recv() {
+                    Ok(InputToken::Channel(text)) => {
+                        if let Ok((_, result)) = s {
+                            for token in rest.iter() {
 
-                for token in templates.borrow().iter() {
-                
+                            }
+                        }
+                    },
+                    _ => {
+                    }
                 }
-
             }
         });
 
         Ok(App {
             tx,
             config,
-            handler: Some(handler),
+            handler: None,
         })
     }
 
@@ -166,7 +205,7 @@ impl<'a> App<'a> {
     }
     
     pub fn send_string(&self, txt: String) -> anyhow::Result<()> {
-        self.tx.send(InputToken::Channel(txt))?;
+        self.tx.send(InputToken::Channel(txt.clone()))?;
         
         Ok(())
     }
