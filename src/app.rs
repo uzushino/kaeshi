@@ -36,10 +36,7 @@ impl TokenExpr {
     pub fn evaluate(&self, rx: Receiver<InputToken>, syn: &parser::Syntax) {
         match rx.recv() {
             Ok(InputToken::Channel(text)) => {
-                if let Ok((_, result)) = s {
-                    for token in rest.iter() {
-
-                    }
+                if let Ok((_, result)) = self.parse(text.as_str(), syn) {
                 }
             },
             _ => {
@@ -47,10 +44,10 @@ impl TokenExpr {
         }
     }
 
-    pub fn parse(&self, text: &str, syn: &parser::Syntax) {
+    pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
         let (_, tokens) = parser::parse_template(self.tag.as_bytes(), &syn).unwrap();
 
-        make_combinator()(tokens, text.as_str())
+        make_combinator()(tokens, text)
             .map(|(rest, value)| {
                 if value.is_empty() {
                     (rest, Vec::default())
@@ -177,16 +174,8 @@ impl<'a> App<'a> {
             let syn = parser::Syntax::default();
 
             loop {
-                match rx.recv() {
-                    Ok(InputToken::Channel(text)) => {
-                        if let Ok((_, result)) = s {
-                            for token in rest.iter() {
+                if let Some(s) = first.evaluate(rx, &syn) {
 
-                            }
-                        }
-                    },
-                    _ => {
-                    }
                 }
             }
         });
