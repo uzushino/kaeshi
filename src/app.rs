@@ -27,21 +27,37 @@ pub struct TokenExpr {
     many: Option<bool>,
 
     // Count
-    count: Option<i64>,
+    count: Option<usize>,
 }
 
 pub type Token = TokenExpr;
 
 impl TokenExpr {
-    pub fn evaluate(&self, rx: Receiver<InputToken>, syn: &parser::Syntax) {
+    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> Vec<BTreeMap<String, String>> {
+        let mut results = Vec::default();
+
         match rx.recv() {
             Ok(InputToken::Channel(text)) => {
-                if let Ok((_, result)) = self.parse(text.as_str(), syn) {
+                if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
+                    results.append(&mut result);
+
+                    for _ in 1..=self.count.unwrap_or(1) {
+                        match rx.recv() {
+                            Ok(InputToken::Channel(text)) => {
+                                if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                                    results.append(&mut row);
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
                 }
             },
             _ => {
             }
         }
+
+        results
     }
 
     pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
@@ -172,11 +188,12 @@ impl<'a> App<'a> {
             let first = templates.first().unwrap();
             let rest= &templates[0..];
             let syn = parser::Syntax::default();
+            let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
 
             loop {
-                if let Some(s) = first.evaluate(rx, &syn) {
+                let mut row = first.evaluate(&rx, &syn);
+                rows.append(&mut row);
 
-                }
             }
         });
 
