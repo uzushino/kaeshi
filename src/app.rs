@@ -41,7 +41,7 @@ impl TokenExpr {
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
 
-                    for _ in 1..=self.count.unwrap_or(1) {
+                    for _ in 1..self.count.unwrap_or(1) {
                         match rx.recv() {
                             Ok(InputToken::Channel(text)) => {
                                 if let Ok((_, mut row)) = self.parse(&text[..], syn) {
@@ -192,8 +192,10 @@ impl<'a> App<'a> {
 
             loop {
                 let mut row = first.evaluate(&rx, &syn);
+            
                 rows.append(&mut row);
 
+                table::printstd(&rows);
             }
         });
 
