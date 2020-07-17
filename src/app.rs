@@ -41,11 +41,24 @@ impl TokenExpr {
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
 
-                    for _ in 1..self.count.unwrap_or(1) {
+                    if self.count.is_some() {
+                        for _ in 1..self.count.unwrap_or(1) {
+                            match rx.recv() {
+                                Ok(InputToken::Channel(text)) => {
+                                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                                        results.append(&mut row);
+                                    }
+                                },
+                                _ => {}
+                            }
+                        }
+                    } else if self.many.is_some() {
                         match rx.recv() {
                             Ok(InputToken::Channel(text)) => {
                                 if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                                     results.append(&mut row);
+                                } else {
+                                    break;
                                 }
                             },
                             _ => {}
