@@ -1,12 +1,14 @@
 use std::collections::{ HashSet, BTreeMap };
 use prettytable::{ Table, Cell, Row };
+use std::io::Write;
 
 pub fn printjson(rows: &Vec<BTreeMap<String, String>>) {
     let j = serde_json::to_string(&rows).unwrap();
     println!("{}", j);
 }
 
-pub fn printstd(rows: &Vec<BTreeMap<String, String>>) {
+pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<usize> 
+   where W: Write  {
     let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
         let ks: HashSet<String> =
             row.keys().cloned().collect();
@@ -32,5 +34,7 @@ pub fn printstd(rows: &Vec<BTreeMap<String, String>>) {
         table.add_row(Row::new(record));
     }
 
-    table.printstd();
+    table
+        .print(&mut writer)
+        .map_err(|_| anyhow::anyhow!("Cannot write output"))
 }

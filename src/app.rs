@@ -57,17 +57,14 @@ impl TokenExpr {
                             Ok(InputToken::Channel(text)) => {
                                 if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                                     results.append(&mut row);
-                                } else {
-                                    break;
-                                }
+                                } 
                             },
                             _ => {}
                         }
                     }
                 }
             },
-            _ => {
-            }
+            _ => {}
         }
 
         results
@@ -199,7 +196,6 @@ impl<'a> App<'a> {
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
             let first = templates.first().unwrap();
-            let rest= &templates[0..];
             let syn = parser::Syntax::default();
             let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
 
@@ -208,14 +204,14 @@ impl<'a> App<'a> {
             
                 rows.append(&mut row);
 
-                table::printstd(&rows);
+                table::printstd(&mut writer, &rows);
             }
         });
 
         Ok(App {
             tx,
             config,
-            handler: None,
+            handler: Some(handler),
         })
     }
 
