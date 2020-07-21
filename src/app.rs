@@ -49,17 +49,21 @@ impl TokenExpr {
                                         results.append(&mut row);
                                     }
                                 },
-                                _ => {}
+                                _ => break
                             }
                         }
                     } else if self.many.is_some() {
-                        match rx.recv() {
-                            Ok(InputToken::Channel(text)) => {
-                                if let Ok((_, mut row)) = self.parse(&text[..], syn) {
-                                    results.append(&mut row);
-                                } 
-                            },
-                            _ => {}
+                        loop {
+                            match rx.recv() {
+                                Ok(InputToken::Channel(text)) => {
+                                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                                        results.append(&mut row);
+                                    } else {
+                                        break
+                                    }
+                                },
+                                _ => break
+                            }
                         }
                     }
                 }
@@ -196,15 +200,20 @@ impl<'a> App<'a> {
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
             let first = templates.first().unwrap();
+            let rest = &templates[1..];
             let syn = parser::Syntax::default();
             let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
 
             loop {
                 let mut row = first.evaluate(&rx, &syn);
-            
                 rows.append(&mut row);
 
-                table::printstd(&mut writer, &rows);
+                for template in rest {
+                    let mut row= template.evaluate(&rx, &syn);
+                    rows.append(&mut row);
+                }
+
+                let _ = table::printstd(&mut writer, &rows);
             }
         });
 
@@ -323,19 +332,6 @@ templates:
   -
     tag: "{{i}},{{n}},{{a}},{{e}}\n"
     count: 5
-
 "#;
-        let app: BTreeMap<String, App> = App::load_from_str(YML).unwrap();
-        let input = r#"
-id,name,age,email
-1,2,3,4
-5,6,7,8
-"#;
-        let combinate = App::build(app["csv"].templates.clone());
-
-        match combinate(input.trim_start()) {
-            Ok((_rest, rows)) => table::printstd(&rows),
-            Err(_) =>  assert!(false)
-        }
     }
 }
