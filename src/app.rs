@@ -49,6 +49,7 @@ impl TokenExpr {
                                         results.append(&mut row);
                                     }
                                 },
+                                Ok(InputToken::Byte(b'\0')) => return results,
                                 _ => break
                             }
                         }
@@ -62,6 +63,7 @@ impl TokenExpr {
                                         break
                                     }
                                 },
+                                Ok(InputToken::Byte(b'\0')) => return results,
                                 _ => break
                             }
                         }
@@ -210,7 +212,7 @@ impl<'a> App<'a> {
                 rows.append(&mut row);
 
                 for template in rest {
-                    let mut row= template.evaluate(&rx, &syn);
+                    let mut row = template.evaluate(&rx, &syn);
                     rows.append(&mut row);
                 }
 
