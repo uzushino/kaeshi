@@ -31,6 +31,7 @@ fn main() -> anyhow::Result<()> {
                 debug!("input line: {}", line);
 
                 if n == 0 {
+                    debug!("eof");
                     app.send_byte(b'\0')?;
                     break;
                 }
@@ -44,5 +45,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    app.handler.unwrap().join().expect("Couldn't join on the associated thread");
+    
     Ok(())
 }

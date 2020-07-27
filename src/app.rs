@@ -190,7 +190,7 @@ pub fn slice_to_string(s: &[u8]) -> String {
 pub struct App<'a> {
     tx: Sender<InputToken>,
 
-    handler: Option<JoinHandle<()>>,
+    pub handler: Option<JoinHandle<()>>,
 
     config: &'a AppConfig,
 }
