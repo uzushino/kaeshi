@@ -70,6 +70,7 @@ impl TokenExpr {
                     }
                 }
             },
+            Ok(InputToken::Byte(b'\0')) => return results,
             _ => {}
         }
 
