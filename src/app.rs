@@ -6,13 +6,11 @@ use nom::{
     branch::alt,
     bytes::streaming::take_until,
     bytes::complete::tag,
-    multi::many1,
 };
 //use std::sync::mpsc::{ self, Sender };
 use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::thread::{self, JoinHandle};
-use log::{ debug, error };
 
 use crossbeam_channel::{ self, unbounded, bounded, Sender, Receiver };
 
@@ -151,6 +149,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         for (u, _ch) in input.chars().into_iter().enumerate() {
                             let s = &input[u..];
                             let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+
                             if let Ok(_) = t {
                                 result = Ok((&input[u..input.len()], &input[0..u]));
                                 break
@@ -166,6 +165,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     } else {
                         let result: IResult<&'a str, &'a str> = take_until("\n")(input);
+
                         if let Ok((rest, capture))  = result {
                             h.insert(key.to_string(), capture.to_string());
                             input = rest;
@@ -212,9 +212,11 @@ impl<'a> App<'a> {
                 let mut row = first.evaluate(&rx, &syn);
                 rows.append(&mut row);
 
-                for template in rest {
-                    let mut row = template.evaluate(&rx, &syn);
-                    rows.append(&mut row);
+                if !rest.is_empty() {
+                    for template in rest {
+                        let mut row = template.evaluate(&rx, &syn);
+                        rows.append(&mut row);
+                    }
                 }
 
                 let _ = table::printstd(&mut writer, &rows);
@@ -320,22 +322,4 @@ impl<'a> App<'a> {
         }
     }
     */
-}
-
-#[allow(unused_imports)]
-mod test {
-    use super::*;
-    use tempra::table;
-
-    #[test]
-    fn test_many() {
-        const YML: &str = r#"
-templates:
-  - 
-    tag: "id,name,age,email\n"
-  -
-    tag: "{{i}},{{n}},{{a}},{{e}}\n"
-    count: 5
-"#;
-    }
 }
