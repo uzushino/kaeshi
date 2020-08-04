@@ -24,3 +24,4 @@ env_logger = "0.7.1"
 
 crossbeam = "0.7"
 crossbeam-channel = "0.4"
+regex = "1"

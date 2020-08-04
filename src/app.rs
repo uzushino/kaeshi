@@ -18,14 +18,19 @@ use tempra::parser;
 use tempra::table;
 
 #[derive(Debug, Deserialize, Clone)]
+pub enum VarExpr {
+   Regex(String),
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct TokenExpr {
     tag: String,
-
     // Many
     many: Option<bool>,
-
     // Count
     count: Option<usize>,
+
+    vars: BTreeMap<String, VarExpr>
 }
 
 pub type Token = TokenExpr;

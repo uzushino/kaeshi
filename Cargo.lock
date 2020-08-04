@@ -681,6 +681,7 @@ dependencies = [
  "log",
  "nom",
  "prettytable-rs",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",
