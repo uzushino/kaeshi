@@ -20,6 +20,7 @@ use tempra::table;
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
    Regex(String),
+   If(TokenExpr),
 }
 
 #[derive(Debug, Deserialize, Clone)]
