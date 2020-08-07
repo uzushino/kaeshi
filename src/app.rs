@@ -87,15 +87,14 @@ impl TokenExpr {
         make_combinator()(tokens, text)
             .map(|(rest, value)| {
                 for key in value.keys() {
-                    match self.vars[key] {
-                        VarExpr::Regex(regex) => {},
-                        _ => {
-                            if value.is_empty() {
-                                (rest, Vec::default())
-                            } else {
-                                (rest, vec![value])
-                            }
-                        }
+                    if self.vars.get(k).is_none() {
+                        continue
+                    }
+
+                    match  {
+                        _ if value.is_empty() => (rest, Vec::default()),
+                        VarExpr::Regex(regex) => (rest, Vec::default()),
+                        _ => (rest, vec![value]),
                     }
                 }
             })
