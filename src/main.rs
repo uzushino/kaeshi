@@ -9,16 +9,30 @@ mod app;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
-    pub file: String,
+    pub file: Option<String>,
+
+    #[structopt(short, long)]
+    pub args: Vec<String>
 }
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-
     let opt = Opt::from_args();
-    let contents = std::fs::read_to_string(opt.file)?;
-    debug!("{}", contents);
-    let config: app::AppConfig = serde_yaml::from_str(&contents)?;
+
+    let config: app::AppConfig = if let Some(file) = opt.file { 
+        let contents = std::fs::read_to_string(file)?;
+        debug!("{}", contents);
+        serde_yaml::from_str(&contents)?
+    } else {
+        let mut config = app::AppConfig::default();
+        let mut tokens = opt.args
+            .iter()
+            .map(|tag| app::TokenExpr::new_with_tag(tag))
+            .collect::<Vec<_>>();
+        config.templates.append(&mut tokens);
+        config
+    };
+
     let app = app::App::new_with_config(&config)?; 
     let stdin = std::io::stdin();
 

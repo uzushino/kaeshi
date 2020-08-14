@@ -37,6 +37,15 @@ pub struct TokenExpr {
 pub type Token = TokenExpr;
 
 impl TokenExpr {
+    pub fn new_with_tag(tag: &String) -> TokenExpr {
+        TokenExpr {
+            tag: tag.clone(), 
+            many: None, 
+            count: None, 
+            vars: BTreeMap::new()
+        }
+    }
+
     pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> Vec<BTreeMap<String, String>> {
         let mut results = Vec::default();
 
@@ -108,7 +117,7 @@ pub enum InputToken {
     EOF,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Default)]
 pub struct AppConfig {
     pub templates: Vec<Token>,
     output: Option<Output>,
