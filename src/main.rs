@@ -12,7 +12,10 @@ struct Opt {
     pub file: Option<String>,
 
     #[structopt(short, long)]
-    pub args: Vec<String>
+    pub tags: Vec<String>,
+
+    #[structopt(short, long)]
+    pub filters: Vec<String>
 }
 
 fn main() -> anyhow::Result<()> {
@@ -25,7 +28,7 @@ fn main() -> anyhow::Result<()> {
         serde_yaml::from_str(&contents)?
     } else {
         let mut config = app::AppConfig::default();
-        let mut tokens = opt.args
+        let mut tokens = opt.tags
             .iter()
             .map(|tag| app::TokenExpr::new_with_tag(tag))
             .collect::<Vec<_>>();
