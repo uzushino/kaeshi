@@ -36,6 +36,8 @@ fn main() -> anyhow::Result<()> {
         config
     };
 
+    debug!("{:?}", config);
+
     let app = app::App::new_with_config(&config)?; 
     let stdin = std::io::stdin();
 

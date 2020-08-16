@@ -46,7 +46,7 @@ impl TokenExpr {
         }
     }
 
-    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> Vec<BTreeMap<String, String>> {
+    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
         let mut results = Vec::default();
 
         match rx.recv() {
@@ -62,7 +62,7 @@ impl TokenExpr {
                                         results.append(&mut row);
                                     }
                                 },
-                                Ok(InputToken::Byte(b'\0')) => return results,
+                                Ok(InputToken::Byte(b'\0')) => return (true, results),
                                 _ => break
                             }
                         }
@@ -76,18 +76,18 @@ impl TokenExpr {
                                         break
                                     }
                                 },
-                                Ok(InputToken::Byte(b'\0')) => return results,
+                                Ok(InputToken::Byte(b'\0')) => return (true, results),
                                 _ => break
                             }
                         }
                     }
                 }
             },
-            Ok(InputToken::Byte(b'\0')) => return results,
+            Ok(InputToken::Byte(b'\0')) => return (true, results),
             _ => {}
         }
 
-        results
+        (false, results)
     }
 
     pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
@@ -224,18 +224,23 @@ impl<'a> App<'a> {
             let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
 
             loop {
-                let mut row = first.evaluate(&rx, &syn);
+                let (mut is_break, mut row) = first.evaluate(&rx, &syn);
                 rows.append(&mut row);
 
                 if !rest.is_empty() {
                     for template in rest {
-                        let mut row = template.evaluate(&rx, &syn);
+                        let (is_break0, mut row) = template.evaluate(&rx, &syn);
+                        is_break = is_break0;
                         rows.append(&mut row);
                     }
                 }
-
-                let _ = table::printstd(&mut writer, &rows);
+               
+                if is_break {
+                    break;
+                } 
             }
+                
+            let _ = table::printstd(&mut writer, &rows);
         });
 
         Ok(App {
