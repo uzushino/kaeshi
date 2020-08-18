@@ -223,15 +223,18 @@ impl<'a> App<'a> {
             let syn = parser::Syntax::default();
             let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
 
-            loop {
-                let (mut is_break, mut row) = first.evaluate(&rx, &syn);
+            'main: loop {
+                let (is_break, mut row) = first.evaluate(&rx, &syn);
                 rows.append(&mut row);
 
                 if !rest.is_empty() {
                     for template in rest {
-                        let (is_break0, mut row) = template.evaluate(&rx, &syn);
-                        is_break = is_break0;
+                        let (is_break, mut row) = template.evaluate(&rx, &syn);
                         rows.append(&mut row);
+
+                        if is_break {
+                            break 'main;
+                        }
                     }
                 }
                
