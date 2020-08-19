@@ -25,9 +25,9 @@ pub enum VarExpr {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct TokenExpr {
-    tag: String,
+    pub tag: String,
     // Many
-    many: Option<bool>,
+    pub many: Option<bool>,
     // Count
     count: Option<usize>,
 

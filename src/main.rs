@@ -15,6 +15,9 @@ struct Opt {
     pub tags: Vec<String>,
 
     #[structopt(short, long)]
+    pub manies: Vec<String>,
+
+    #[structopt(short, long)]
     pub filters: Vec<String>
 }
 
@@ -33,6 +36,17 @@ fn main() -> anyhow::Result<()> {
             .map(|tag| app::TokenExpr::new_with_tag(tag))
             .collect::<Vec<_>>();
         config.templates.append(&mut tokens);
+
+        let mut tokens = opt.manies
+            .iter()
+            .map(|tag| {
+                let mut tag = app::TokenExpr::new_with_tag(tag);
+                tag.many = Some(true);
+                tag
+            })
+            .collect::<Vec<_>>();
+        config.templates.append(&mut tokens);
+
         config
     };
 
