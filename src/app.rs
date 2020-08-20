@@ -125,6 +125,42 @@ pub struct AppConfig {
     filters: Option<Vec<String>>,
 }
 
+pub fn token_expr(input: &mut str, token: Option<&parser::Node>) -> String {
+   if let Some(parser::Node::Lit(a, b, c)) = token {
+       let err = (input, nom::error::ErrorKind::TakeUntil);
+       let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
+       
+       for (u, _ch) in input.chars().into_iter().enumerate() {
+           let s = &input[u..];
+           let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+
+           if let Ok(_) = t {
+               result = Ok((&input[u..input.len()], &input[0..u]));
+               break
+           } 
+       }
+
+       if let Ok((rest, hit)) = result {
+           input = rest;
+           return hit.to_string();
+       } else {
+           //let err = (input, nom::error::ErrorKind::ParseTo);
+           //return Err(nom::Err::Error(err));
+       }
+   } else {
+       let result: IResult<&str, &str> = take_until("\n")(input);
+
+       if let Ok((rest, capture))  = result {
+           //input = rest;
+           return capture.to_string()
+       } else {
+           return input.to_string();
+       }
+   }
+}
+
+
+
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
         let mut h: BTreeMap<String, String> = BTreeMap::default();
@@ -231,7 +267,6 @@ impl<'a> App<'a> {
                     for template in rest {
                         let (is_break, mut row) = template.evaluate(&rx, &syn);
                         rows.append(&mut row);
-
                         if is_break {
                             break 'main;
                         }
