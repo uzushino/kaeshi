@@ -125,7 +125,7 @@ pub struct AppConfig {
     filters: Option<Vec<String>>,
 }
 
-pub fn token_expr(input: &mut str, token: Option<&parser::Node>) -> String {
+pub fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> Result<(&'a str, String), ()> {
    if let Some(parser::Node::Lit(a, b, c)) = token {
        let err = (input, nom::error::ErrorKind::TakeUntil);
        let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
@@ -142,8 +142,9 @@ pub fn token_expr(input: &mut str, token: Option<&parser::Node>) -> String {
 
        if let Ok((rest, hit)) = result {
            input = rest;
-           return hit.to_string();
+           return Ok((input, hit.to_string()));
        } else {
+           return Err(());
            //let err = (input, nom::error::ErrorKind::ParseTo);
            //return Err(nom::Err::Error(err));
        }
@@ -151,10 +152,10 @@ pub fn token_expr(input: &mut str, token: Option<&parser::Node>) -> String {
        let result: IResult<&str, &str> = take_until("\n")(input);
 
        if let Ok((rest, capture))  = result {
-           //input = rest;
-           return capture.to_string()
+           input = rest;
+           return Ok((input, capture.to_string()));
        } else {
-           return input.to_string();
+           return Ok((input, input.to_string()));
        }
    }
 }
