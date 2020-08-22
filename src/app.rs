@@ -125,10 +125,19 @@ pub struct AppConfig {
     filters: Option<Vec<String>>,
 }
 
-pub fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> Result<(&'a str, String), ()> {
-   if let Some(parser::Node::Lit(a, b, c)) = token {
-       let err = (input, nom::error::ErrorKind::TakeUntil);
-       let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
+fn make_error(input: &str, kind: nom::error::ErrorKind) -> nom::Err<(&str, nom::error::ErrorKind)> {
+    let err = (input, kind);
+    nom::Err::Error(err)
+}
+
+fn default_error(input: &str) -> nom::Err<(&str, nom::error::ErrorKind)> {
+    let err = (input, nom::error::ErrorKind::Eof);
+    nom::Err::Error(err)
+}
+
+fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a str, String> {
+   let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
+       let mut result: IResult<&str, &str> = Err(default_error(input));
        
        for (u, _ch) in input.chars().into_iter().enumerate() {
            let s = &input[u..];
@@ -140,27 +149,13 @@ pub fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> Result<(&
            } 
        }
 
-       if let Ok((rest, hit)) = result {
-           input = rest;
-           return Ok((input, hit.to_string()));
-       } else {
-           return Err(());
-           //let err = (input, nom::error::ErrorKind::ParseTo);
-           //return Err(nom::Err::Error(err));
-       }
-   } else {
-       let result: IResult<&str, &str> = take_until("\n")(input);
+       result
+    } else {
+        take_until("\n")(input)
+    };
 
-       if let Ok((rest, capture))  = result {
-           input = rest;
-           return Ok((input, capture.to_string()));
-       } else {
-           return Ok((input, input.to_string()));
-       }
-   }
+    result.map(|(a, b)| (a, b.to_string()))
 }
-
-
 
 pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
     move |tokens: Vec<parser::Node>, mut input: &'a str| {
@@ -185,46 +180,27 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                 },
                 parser::Node::Expr(_, parser::Expr::Filter("trim", vars)) => {
                     if let Some(parser::Expr::Var(t)) = vars.first() {
-                        if let Some(v) = h.get_mut(t.clone()) {
-                            *v = v.trim().to_string();
+                        let next = tokens.get(idx + 1);
+                        let result = token_expr(input, next);
+
+                        if let Ok((rest, hit)) = result {
+                            input = rest;
+                            h.insert(t.to_string(), hit.trim().to_string());
+                        } else {
+                            input = "";
                         }
                     }
                 },
                 parser::Node::Expr(_, parser::Expr::Filter("skip", _)) => {},
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
                     let next = tokens.get(idx + 1);
-                    
-                    if let Some(parser::Node::Lit(a, b, c)) = next {
-                        let err = (input, nom::error::ErrorKind::TakeUntil);
-                        let mut result: IResult<&str, &str> = Err(nom::Err::Error(err));
-                        
-                        for (u, _ch) in input.chars().into_iter().enumerate() {
-                            let s = &input[u..];
-                            let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+                    let result = token_expr(input, next);
 
-                            if let Ok(_) = t {
-                                result = Ok((&input[u..input.len()], &input[0..u]));
-                                break
-                            } 
-                        }
-
-                        if let Ok((rest, hit)) = result {
-                            h.insert(key.to_string(), hit.to_string());
-                            input = rest;
-                        } else {
-                            let err = (input, nom::error::ErrorKind::ParseTo);
-                            return Err(nom::Err::Error(err));
-                        }
+                    if let Ok((rest, hit)) = result {
+                        input = rest;
+                        h.insert(key.to_string(), hit);
                     } else {
-                        let result: IResult<&'a str, &'a str> = take_until("\n")(input);
-
-                        if let Ok((rest, capture))  = result {
-                            h.insert(key.to_string(), capture.to_string());
-                            input = rest;
-                        } else {
-                            h.insert(key.to_string(), input.to_string());
-                            input = "";
-                        }
+                        input = "";
                     }
                 },
                 _ => {},
