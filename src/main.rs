@@ -18,7 +18,7 @@ struct Opt {
     pub manies: Vec<String>,
 
     #[structopt(short, long)]
-    pub filters: Vec<String>
+    pub filters: Vec<String>,
 }
 
 fn main() -> anyhow::Result<()> {

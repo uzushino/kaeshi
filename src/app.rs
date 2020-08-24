@@ -131,8 +131,7 @@ fn make_error(input: &str, kind: nom::error::ErrorKind) -> nom::Err<(&str, nom::
 }
 
 fn default_error(input: &str) -> nom::Err<(&str, nom::error::ErrorKind)> {
-    let err = (input, nom::error::ErrorKind::Eof);
-    nom::Err::Error(err)
+    make_error(input, nom::error::ErrorKind::Eof)
 }
 
 fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a str, String> {
