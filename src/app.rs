@@ -7,12 +7,10 @@ use nom::{
     bytes::streaming::take_until,
     bytes::complete::tag,
 };
-//use std::sync::mpsc::{ self, Sender };
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
-use std::process::{Command, Stdio};
+use std::io::{self, BufWriter};
 use std::thread::{self, JoinHandle};
 
-use crossbeam_channel::{ self, unbounded, bounded, Sender, Receiver };
+use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 
 use tempra::parser;
 use tempra::table;
@@ -171,10 +169,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
 
                     match a {
                         Ok((rest, _b)) => input = rest,
-                        _ => {
-                            let err = nom::error::make_error(input, nom::error::ErrorKind::Eof);
-                            return Err(nom::Err::Error(err));
-                        }
+                        _ => return Err(default_error(input))
                     }
                 },
                 parser::Node::Expr(_, parser::Expr::Filter("trim", vars)) => {
@@ -243,6 +238,7 @@ impl<'a> App<'a> {
                     for template in rest {
                         let (is_break, mut row) = template.evaluate(&rx, &syn);
                         rows.append(&mut row);
+                        
                         if is_break {
                             break 'main;
                         }
