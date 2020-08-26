@@ -185,7 +185,6 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     }
                 },
-                parser::Node::Expr(_, parser::Expr::Filter("skip", _)) => {},
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
                     let next = tokens.get(idx + 1);
                     let result = token_expr(input, next);

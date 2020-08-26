@@ -19,6 +19,9 @@ struct Opt {
 
     #[structopt(short, long)]
     pub filters: Vec<String>,
+
+    #[structopt(short, long)]
+    pub output: Option<String>,
 }
 
 fn main() -> anyhow::Result<()> {
