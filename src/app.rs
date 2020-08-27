@@ -28,6 +28,10 @@ pub struct TokenExpr {
     pub many: Option<bool>,
     // Count
     count: Option<usize>,
+    // Begin
+    begin: Option<usize>,
+    // End
+    end: Option<usize>,
 
     vars: BTreeMap<String, VarExpr>
 }
