@@ -43,7 +43,9 @@ impl TokenExpr {
         TokenExpr {
             tag: tag.clone(), 
             many: None, 
-            count: None, 
+            count: None,
+            begin: None,
+            end: None,
             vars: BTreeMap::new()
         }
     }
