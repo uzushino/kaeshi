@@ -50,7 +50,7 @@ impl TokenExpr {
         }
     }
 
-    pub fn read_count(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
+    pub fn parse_count(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
         let mut results = Vec::default();
 
         for _ in 1..self.count.unwrap_or(1) {
@@ -58,6 +58,26 @@ impl TokenExpr {
                 Ok(InputToken::Channel(text)) => {
                     if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                         results.append(&mut row);
+                    }
+                },
+                Ok(InputToken::Byte(b'\0')) => return (true, results),
+                _ => break
+            }
+        }
+
+        (false, results)
+    }
+
+    pub fn parse_many(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
+        let mut results = Vec::default();
+
+        loop {
+            match rx.recv() {
+                Ok(InputToken::Channel(text)) => {
+                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                        results.append(&mut row);
+                    } else {
+                        break
                     }
                 },
                 Ok(InputToken::Byte(b'\0')) => return (true, results),
