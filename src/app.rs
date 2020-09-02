@@ -97,17 +97,7 @@ impl TokenExpr {
                     results.append(&mut result);
 
                     if self.count.is_some() {
-                        for _ in 1..self.count.unwrap_or(1) {
-                            match rx.recv() {
-                                Ok(InputToken::Channel(text)) => {
-                                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
-                                        results.append(&mut row);
-                                    }
-                                },
-                                Ok(InputToken::Byte(b'\0')) => return (true, results),
-                                _ => break
-                            }
-                        }
+                        self.parse_count(rx, syn);
                     } else if self.many.is_some() {
                         loop {
                             match rx.recv() {
