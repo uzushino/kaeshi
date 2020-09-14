@@ -12,8 +12,8 @@ use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 
-use tempra::parser;
-use tempra::table;
+use textdb::parser;
+use textdb::table;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
