@@ -1,10 +1,10 @@
 use log::{ debug, error };
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
 use structopt::StructOpt;
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{ BufRead };
 
+mod parser;
+mod table;
+mod db;
 mod app;
 
 #[derive(Debug, StructOpt)]
@@ -55,8 +55,6 @@ fn main() -> anyhow::Result<()> {
 
         config
     };
-
-    debug!("{:?}", config);
 
     let app = app::App::new_with_config(&config)?; 
     let stdin = std::io::stdin();

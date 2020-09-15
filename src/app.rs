@@ -12,8 +12,8 @@ use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 
-use textdb::parser;
-use textdb::table;
+use super::parser;
+use super::table;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
@@ -38,6 +38,8 @@ pub struct TokenExpr {
 
 pub type Token = TokenExpr;
 
+pub type DB = Vec<BTreeMap<String, String>>;
+
 impl TokenExpr {
     pub fn new_with_tag(tag: &String) -> TokenExpr {
         TokenExpr {
@@ -50,7 +52,7 @@ impl TokenExpr {
         }
     }
 
-    pub fn parse_count(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
+    pub fn parse_count(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
 
         for _ in 1..self.count.unwrap_or(1) {
@@ -68,7 +70,7 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn parse_many(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
+    pub fn parse_many(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
 
         loop {
@@ -88,7 +90,7 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, Vec<BTreeMap<String, String>>) {
+    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
 
         match rx.recv() {
@@ -122,7 +124,7 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, Vec<BTreeMap<String, String>>> {
+    pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, DB> {
         let (_, tokens) = parser::parse_template(self.tag.as_bytes(), &syn).unwrap();
 
         make_combinator()(tokens, text)
