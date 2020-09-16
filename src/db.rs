@@ -10,13 +10,17 @@ pub struct MemoryStorage {
 use crate::app::DB;
 
 impl MemoryStorage {
-    pub fn new() -> Result<Self> {
-        let schema_map = HashMap::new();
-        let data_map = HashMap::new();
+    pub fn new(data: HashMap<String, DB>) -> Result<Self> {
+        let mut schema_map = HashMap::new();
+        let schema = Schema { 
+            table_name: "public".to_owned(),
+            column_defs: Vec::default(),
+        };
+        schema_map.insert("public".to_owned(), schema);
 
         Ok(Self {
             schema_map,
-            data_map,
+            data_map: data,
             id: 0,
         })
     }
@@ -94,16 +98,12 @@ impl Store<DataKey> for MemoryStorage {
                 let mut kv = Vec::default();
 
                 for (id, db) in items.iter().enumerate() {
-                    let mut rows = Vec::default();
-
                     let key = DataKey {
                         table_name: table_name.to_string(),
                         id: id as u64,
                     };
 
-                    for (k, v) in db {
-                        rows.push(Value::Str(v.clone()));
-                    }
+                    let rows = db.iter().map(|(_k, v)| Value::Str(v.clone())).collect();
 
                     kv.push((key, Row(rows)));
                 }
@@ -116,5 +116,29 @@ impl Store<DataKey> for MemoryStorage {
         let items = items.into_iter().map(Ok);
 
         Ok(Box::new(items))
+    }
+}
+
+mod test {
+    use std::collections::HashMap;
+    use super::*;
+
+    #[test]
+    fn it_select() {
+        let mut db: HashMap<String, DB> = HashMap::default();
+        let row: DB = Vec::default();
+        db.insert("aaa".to_string(), row);
+
+        let storage = MemoryStorage::new(db);
+        let query = gluesql::parse("SELECT 1 FROM public").unwrap();
+
+        match gluesql::execute(storage.unwrap(), &query[0]) {
+            Ok((storage, payload)) => {
+                println!("{:?}", payload);
+            },
+            Err((storage, error)) => {
+                println!("{:?}", error);
+            }
+        }
     }
 }
