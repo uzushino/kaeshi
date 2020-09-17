@@ -120,17 +120,19 @@ impl Store<DataKey> for MemoryStorage {
 }
 
 mod test {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use super::*;
 
     #[test]
     fn it_select() {
         let mut db: HashMap<String, DB> = HashMap::default();
-        let row: DB = Vec::default();
+        let mut data: BTreeMap<String, String> = BTreeMap::default();
+        data.insert("name".to_owned(), "hoge".to_owned());
+        let row: DB = vec![data];
         db.insert("aaa".to_string(), row);
 
         let storage = MemoryStorage::new(db);
-        let query = gluesql::parse("SELECT 1 FROM public").unwrap();
+        let query = gluesql::parse("SELECT * FROM public").unwrap();
 
         match gluesql::execute(storage.unwrap(), &query[0]) {
             Ok((storage, payload)) => {
