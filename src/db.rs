@@ -7,8 +7,7 @@ pub struct Glue {
 
 impl Glue {
     pub fn new() -> Self {
-        let db = HashMap::default();
-        let storage = MemoryStorage::new(db).unwrap();
+        let storage = MemoryStorage::new().unwrap();
         
         Glue {
             storage: Some(storage)
@@ -18,6 +17,7 @@ impl Glue {
     pub fn execute(&mut self, sql: String) {
         let query = gluesql::parse("
         CREATE TABLE Test (id INTEGER, msg TEXT);
+        INSERT INTO Test VALUES (1, \"abc\");
         SELECT * FROM Test;
         ").unwrap();
 
@@ -26,7 +26,8 @@ impl Glue {
             
             if let Ok((s, payload)) = gluesql::execute(s, &q) {
                 self.storage = Some(s);
-                println!("{:?}", payload);
+
+                println!("result: {:?}", payload);
             }
         }
     }
@@ -34,26 +35,19 @@ impl Glue {
 
 pub struct MemoryStorage {
     schema_map: HashMap<String, Schema>,
-    data_map: HashMap<String, (usize, DB)>,
+    data_map: HashMap<String, Vec<(u64, Row)>>,
     id: u64,
 }
 
 use crate::app::DB;
 
 impl MemoryStorage {
-    pub fn new(data: HashMap<String, (usize, DB)>) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         let mut schema_map = HashMap::new();
         
-        let schema = Schema { 
-            table_name: "public".to_owned(),
-            column_defs: vec![],
-        };
-        
-        schema_map.insert("public".to_owned(), schema);
-
         Ok(Self {
             schema_map,
-            data_map: data,
+            data_map: HashMap::default(),
             id: 0,
         })
     }
@@ -117,21 +111,42 @@ impl StoreMut<DataKey> for MemoryStorage {
 
     fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, Row> {
         let DataKey { table_name, id } = key;
-        let table_name = table_name.to_string();
-        let item = (*id, row.clone());
+        let (id, _row)= (*id, row.clone());
+
         let Self {
             schema_map,
-            data_map,
+            mut data_map,
             id: self_id,
         } = self;
 
+        let new_rows= match data_map.get_mut(table_name) {
+            Some(rows) => {
+                let rows= match rows.iter().position(|(item_id, _)| *item_id == id) {
+                    Some(index) => {
+                        rows[index] = (id, _row);
+                        rows
+                    },
+                    None => {
+                        rows.push((id, _row));
+                        rows
+                    }
+                };
+
+                rows.clone()
+            }
+            _ => vec![(id, _row)]
+        };
+
+        let mut data_map = HashMap::new();
+        data_map.insert(table_name.clone(), new_rows);
+
         let storage = Self {
             schema_map,
-            data_map,
+            data_map: data_map.clone(),
             id: self_id,
         };
 
-        Ok((storage, row))
+        Ok((storage, row.clone()))
     }
 
     fn delete_data(self, key: &DataKey) -> MutResult<Self, ()> {
@@ -151,24 +166,22 @@ impl Store<DataKey> for MemoryStorage {
     }
 
     fn scan_data(&self, table_name: &str) -> Result<RowIter<DataKey>> {
-        let items = match self.data_map.get(table_name) {
-            Some(items) => {
-                let mut kv = Vec::default();
+        println!("{:?}", table_name);
+        println!("{:?}", self.data_map);
 
-                for (id, db) in items.0.iter().enumerate() {
+        let items = match self.data_map.get(table_name) {
+            Some(items) => items
+                .iter()
+                .map(|(id, row)| {
                     let key = DataKey {
                         table_name: table_name.to_string(),
-                        id: id as u64,
+                        id: *id,
                     };
 
-                    let rows = db.iter().map(|(_k, v)| Value::Str(v.clone())).collect();
-
-                    kv.push((key, Row(rows)));
-                }
-                println!("aa: {:?}", kv);
-                kv
-            }
-            None => Vec::default(),
+                    (key, row.clone())
+                })
+                .collect(),
+            None => vec![],
         };
 
         let items = items.into_iter().map(Ok);
@@ -183,17 +196,7 @@ mod test {
 
     #[test]
     fn it_select() {
-        //let mut db: HashMap<String, DB> = HashMap::default();
-        
-        //let mut data: BTreeMap<String, String> = BTreeMap::default();
-        // data.insert("name".to_owned(), "hoge".to_owned());
-
-        //let row: DB = vec![];
-        //db.insert("aaa".to_string(), row);
-
         let mut glue = Glue::new();
-        //let storage = MemoryStorage::new(db).unwrap();
-
         glue.execute("SELECT * FROM TEST;".into());
     }
 }
