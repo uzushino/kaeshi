@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use gluesql::{Error, MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, Value};
+use anyhow::anyhow;
+use gluesql::{Error, MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, Value, Payload};
 
 pub struct Glue {
     storage: Option<MemoryStorage>
@@ -14,22 +15,28 @@ impl Glue {
         }
     }
 
-    pub fn execute(&mut self, sql: String) {
-        let query = gluesql::parse("
-        CREATE TABLE Test (id INTEGER, msg TEXT);
-        INSERT INTO Test VALUES (1, \"abc\");
-        SELECT * FROM Test;
-        ").unwrap();
+    pub fn create_table(&mut self) -> anyhow::Result<Option<Payload>> {
+        self.execute("CREATE TABLE Test (id INTEGER, msg TEXT);")
+    }
+    
+    pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
+        self.execute(format!("INSERT INTO Test VALUES ({})", msg).as_str())
+    }
 
-        for q in query {
+    pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
+        let query = gluesql::parse(sql)?;
+
+        let q = query.get(0);
+        if let Some(q) = q {
             let s = self.storage.take().unwrap();
-            
-            if let Ok((s, payload)) = gluesql::execute(s, &q) {
-                self.storage = Some(s);
 
-                println!("result: {:?}", payload);
+            if let Ok((s, payload)) =  gluesql::execute(s, &q) {
+                self.storage = Some(s);
+                return Ok(Some(payload));
             }
         }
+
+        Err(anyhow!("Error: {}", sql))
     }
 }
 
@@ -43,7 +50,7 @@ use crate::app::DB;
 
 impl MemoryStorage {
     pub fn new() -> Result<Self> {
-        let mut schema_map = HashMap::new();
+        let schema_map = HashMap::new();
         
         Ok(Self {
             schema_map,
@@ -79,7 +86,9 @@ impl StoreMut<DataKey> for MemoryStorage {
     fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
         let table_name = schema.table_name.to_string();
         let mut s= HashMap::default();
+
         s.insert(table_name, schema.clone());
+
         //let schema_map = self.schema_map.update(table_name, schema.clone());
         let storage = Self {
             schema_map: s,
@@ -166,9 +175,6 @@ impl Store<DataKey> for MemoryStorage {
     }
 
     fn scan_data(&self, table_name: &str) -> Result<RowIter<DataKey>> {
-        println!("{:?}", table_name);
-        println!("{:?}", self.data_map);
-
         let items = match self.data_map.get(table_name) {
             Some(items) => items
                 .iter()
@@ -197,6 +203,16 @@ mod test {
     #[test]
     fn it_select() {
         let mut glue = Glue::new();
-        glue.execute("SELECT * FROM TEST;".into());
+        glue.create_table();
+        glue.insert("Hoge");
+
+        let query = glue.execute("SELECT * FROM Test;").unwrap();
+
+        match query {
+            Some(Payload::Select(v)) => {
+                println!("{:?}", v);
+            },
+            _ => {}
+        }
     }
 }
