@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use gluesql::{Error, MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, Value, Payload};
 
+#[derive(Clone)]
 pub struct Glue {
     storage: Option<MemoryStorage>
 }
@@ -16,11 +17,11 @@ impl Glue {
     }
 
     pub fn create_table(&mut self) -> anyhow::Result<Option<Payload>> {
-        self.execute("CREATE TABLE Test (id INTEGER, msg TEXT);")
+        self.execute("CREATE TABLE JsonStore (id INTEGER, msg TEXT);")
     }
     
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
-        self.execute(format!("INSERT INTO Test VALUES ({})", msg).as_str())
+        self.execute(format!("INSERT INTO JsonStore VALUES (1, \"{}\")", msg).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
@@ -28,18 +29,22 @@ impl Glue {
 
         let q = query.get(0);
         if let Some(q) = q {
-            let s = self.storage.take().unwrap();
-
-            if let Ok((s, payload)) =  gluesql::execute(s, &q) {
+            let strage = self.storage.take().unwrap();
+            
+            if let Ok((s, payload)) =  gluesql::execute(strage.clone(), &q) {
                 self.storage = Some(s);
                 return Ok(Some(payload));
+            } else {
+                self.storage = Some(strage);
             }
+            
         }
 
         Err(anyhow!("Error: {}", sql))
     }
 }
 
+#[derive(Clone)]
 pub struct MemoryStorage {
     schema_map: HashMap<String, Schema>,
     data_map: HashMap<String, Vec<(u64, Row)>>,
@@ -89,7 +94,6 @@ impl StoreMut<DataKey> for MemoryStorage {
 
         s.insert(table_name, schema.clone());
 
-        //let schema_map = self.schema_map.update(table_name, schema.clone());
         let storage = Self {
             schema_map: s,
             data_map: self.data_map,
@@ -197,19 +201,18 @@ impl Store<DataKey> for MemoryStorage {
 }
 
 mod test {
-    use std::collections::BTreeMap;
     use super::*;
 
     #[test]
     fn it_select() {
         let mut glue = Glue::new();
+
         glue.create_table();
         glue.insert("Hoge");
 
-        let query = glue.execute("SELECT * FROM Test;").unwrap();
-
+        let query = glue.execute("SELECT * FROM Test;");
         match query {
-            Some(Payload::Select(v)) => {
+            Ok(Some(Payload::Select(v))) => {
                 println!("{:?}", v);
             },
             _ => {}
