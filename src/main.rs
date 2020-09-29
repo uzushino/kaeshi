@@ -6,6 +6,7 @@ mod parser;
 mod table;
 mod db;
 mod app;
+mod storage;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
