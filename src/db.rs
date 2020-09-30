@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use anyhow::anyhow;
-use gluesql::{Error, MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, Value, Payload};
+use gluesql::Payload;
+use chrono::prelude::*;
 
 use super::storage::Storage;
 
@@ -19,11 +19,19 @@ impl Glue {
     }
 
     pub fn create_table(&mut self) -> anyhow::Result<Option<Payload>> {
-        self.execute("CREATE TABLE JsonStore (id INTEGER, msg TEXT);")
+        self.execute("CREATE TABLE JsonStore (msg TEXT, created_at TEXT);")
+    }
+    
+    pub fn insert_data(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
+        let local: DateTime<Local> = Local::now();
+        self.execute(
+            format!("INSERT INTO JsonStore VALUES (\"{}\", \"{}\")", msg, local.to_rfc3339()).as_str())
     }
     
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
-        self.execute(format!("INSERT INTO JsonStore VALUES (1, \"{}\")", msg).as_str())
+        let local: DateTime<Local> = Local::now();
+        self.execute(
+            format!("INSERT INTO JsonStore VALUES (\"{}\", \"{}\")", msg, local.to_rfc3339()).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {

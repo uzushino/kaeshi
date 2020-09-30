@@ -29,6 +29,7 @@ impl Storage {
 impl StoreMut<DataKey> for Storage {
     fn generate_id(self, table_name: &str) -> MutResult<Self, DataKey> {
         let id = self.id + 1;
+
         let storage = Self {
             schema_map: self.schema_map,
             data_map: self.data_map,

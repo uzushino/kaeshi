@@ -19,6 +19,7 @@ serde_json = "1.0"
 structopt = "*"
 anyhow = "*"
 gluesql = "*"
+chrono = "*"
 
 log = "0.4.0"
 env_logger = "0.7.1"
