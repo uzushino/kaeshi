@@ -22,14 +22,9 @@ impl Glue {
         self.execute("CREATE TABLE JsonStore (msg TEXT, created_at TEXT);")
     }
     
-    pub fn insert_data(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
-        let local: DateTime<Local> = Local::now();
-        self.execute(
-            format!("INSERT INTO JsonStore VALUES (\"{}\", \"{}\")", msg, local.to_rfc3339()).as_str())
-    }
-    
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
+
         self.execute(
             format!("INSERT INTO JsonStore VALUES (\"{}\", \"{}\")", msg, local.to_rfc3339()).as_str())
     }

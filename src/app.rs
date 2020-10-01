@@ -14,6 +14,7 @@ use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 
 use super::parser;
 use super::table;
+use super::db;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
@@ -247,16 +248,16 @@ pub fn slice_to_string(s: &[u8]) -> String {
 
 pub struct App<'a> {
     tx: Sender<InputToken>,
-
     pub handler: Option<JoinHandle<()>>,
-
     config: &'a AppConfig,
+    db: db::Glue,
 }
 
 impl<'a> App<'a> {
     pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
         let (tx, rx): (Sender<InputToken>, Receiver<InputToken>) = unbounded();
         let templates = config.templates.clone();
+        let db= db::Glue::new();
 
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
@@ -291,6 +292,7 @@ impl<'a> App<'a> {
         Ok(App {
             tx,
             config,
+            db,
             handler: Some(handler),
         })
     }
