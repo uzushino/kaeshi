@@ -23,6 +23,9 @@ struct Opt {
 
     #[structopt(short, long)]
     pub output: Option<String>,
+    
+    #[structopt(short, long)]
+    pub query: Option<String>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -83,7 +86,18 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    app.handler.unwrap().join().expect("Couldn't join on the associated thread");
-    
+    app.handler.unwrap()
+        .join()
+        .expect("Couldn't join on the associated thread");
+
+    if let Some(query) = opt.query {
+        let mut db = app.db.lock()
+            .unwrap();
+
+        if let Ok(result) = db.execute(query.as_str()) {
+            dbg!(&result);
+        }
+    }         
+
     Ok(())
 }

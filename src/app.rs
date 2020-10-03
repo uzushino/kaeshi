@@ -250,14 +250,17 @@ pub struct App<'a> {
     tx: Sender<InputToken>,
     pub handler: Option<JoinHandle<()>>,
     config: &'a AppConfig,
-    db: db::Glue,
+    pub db: std::sync::Arc<std::sync::Mutex<db::Glue>>,
 }
 
 impl<'a> App<'a> {
     pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
         let (tx, rx): (Sender<InputToken>, Receiver<InputToken>) = unbounded();
         let templates = config.templates.clone();
-        let db= db::Glue::new();
+
+        let db= std::sync::Arc::new(std::sync::Mutex::new(db::Glue::new()));
+        let _ = db.lock().unwrap().create_table();
+        let db1 = db.clone();
 
         let handler = thread::spawn(move || {
             let mut writer = BufWriter::new(io::stdout());
@@ -285,9 +288,12 @@ impl<'a> App<'a> {
                     break;
                 } 
             }
-                
+
+            let _ = db1.lock().unwrap().insert(serde_yaml::to_string(&rows).unwrap().as_str());
+
             let _ = table::printstd(&mut writer, &rows);
         });
+
 
         Ok(App {
             tx,
@@ -295,6 +301,10 @@ impl<'a> App<'a> {
             db,
             handler: Some(handler),
         })
+    }
+
+    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
+        self.db.lock().unwrap().execute(query.as_str())
     }
 
     pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {

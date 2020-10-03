@@ -25,8 +25,10 @@ impl Glue {
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
 
+        log::debug!("{:?}", msg);
+
         self.execute(
-            format!("INSERT INTO JsonStore VALUES (\"{}\", \"{}\")", msg, local.to_rfc3339()).as_str())
+            format!(r#"INSERT INTO JsonStore VALUES ("{}", "{}")"#, msg, local.to_rfc3339()).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
