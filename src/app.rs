@@ -263,7 +263,6 @@ impl<'a> App<'a> {
         let db1 = db.clone();
 
         let handler = thread::spawn(move || {
-            let mut writer = BufWriter::new(io::stdout());
             let first = templates.first().unwrap();
             let rest = &templates[1..];
             let syn = parser::Syntax::default();
@@ -290,8 +289,8 @@ impl<'a> App<'a> {
             }
 
             let _ = db1.lock().unwrap().insert(serde_yaml::to_string(&rows).unwrap().as_str());
-
-            let _ = table::printstd(&mut writer, &rows);
+            // let writer = BufWriter::new(io::stdout());
+            // let _ = table::printstd(&mut writer, &rows);
         });
 
 
