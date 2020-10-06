@@ -95,7 +95,13 @@ fn main() -> anyhow::Result<()> {
             .unwrap();
 
         if let Ok(result) = db.execute(query.as_str()) {
-            dbg!(&result);
+            match result {
+                Some(gluesql::Payload::Select(stmt)) => {
+                    for record in stmt {
+                    }
+                }
+                _ => {}
+            }
         }
     }         
 
