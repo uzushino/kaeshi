@@ -25,6 +25,9 @@ struct Opt {
     pub output: Option<String>,
     
     #[structopt(short, long)]
+    pub source: Option<String>,
+    
+    #[structopt(short, long)]
     pub query: Option<String>,
 }
 
