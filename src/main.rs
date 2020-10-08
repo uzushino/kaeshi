@@ -1,7 +1,7 @@
 use log::{ debug, error };
 use structopt::StructOpt;
 use std::io::{ BufRead };
-
+use tokio::sync::mpsc;
 mod parser;
 mod table;
 mod db;
@@ -31,7 +31,8 @@ struct Opt {
     pub query: Option<String>,
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let opt = Opt::from_args();
 
@@ -63,9 +64,55 @@ fn main() -> anyhow::Result<()> {
         config
     };
 
-    let app = app::App::new_with_config(&config)?; 
-    let stdin = std::io::stdin();
+    let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
+    let templates = config.templates.clone();
 
+    let mutex_app = std::sync::Arc::new(
+        tokio::sync::Mutex::new(app::App::new_with_config(tx, config).await?)
+    ); 
+
+    let app1 = mutex_app.clone();
+    let handler1 = tokio::spawn(async move {
+        let mut db = db::Glue::new();
+        db.create_table();
+        app1.lock_owned().await.handler(&mut rx, &mut db, templates).await;
+    });
+    debug!("aaa");
+    let app2 = mutex_app.clone();
+    let handler2 = tokio::spawn(async move {
+        let app2 = app2.lock_owned().await;
+        handler(&app2).await;
+    });
+
+    debug!("bbb");
+    tokio::join!(handler1, handler2);
+    debug!("ccc");
+
+    /*
+    app.handler.unwrap()
+        .join()
+        .expect("Couldn't join on the associated thread");
+    */
+    if let Some(query) = opt.query {
+        debug!("q {:?}", query);
+        if let Ok(result) = mutex_app.lock_owned().await.db.execute(query.as_str()) {
+            debug!("Result: {:?}", result);
+            match result {
+                Some(gluesql::Payload::Select(stmt)) => {
+                    for record in stmt {
+                    }
+                }
+                _ => {}
+            }
+        }
+    }         
+
+    Ok(())
+}
+
+async fn handler(app: &app::App) -> anyhow::Result<()> { 
+    let stdin = std::io::stdin();
+    println!("aaabbbb");
     loop {
         let mut buf = Vec::with_capacity(1024usize);
 
@@ -88,25 +135,6 @@ fn main() -> anyhow::Result<()> {
             },
         }
     }
-
-    app.handler.unwrap()
-        .join()
-        .expect("Couldn't join on the associated thread");
-
-    if let Some(query) = opt.query {
-        let mut db = app.db.lock()
-            .unwrap();
-
-        if let Ok(result) = db.execute(query.as_str()) {
-            match result {
-                Some(gluesql::Payload::Select(stmt)) => {
-                    for record in stmt {
-                    }
-                }
-                _ => {}
-            }
-        }
-    }         
 
     Ok(())
 }

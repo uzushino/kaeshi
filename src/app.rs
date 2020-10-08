@@ -9,12 +9,14 @@ use nom::{
 };
 use std::io::{self, BufWriter};
 use std::thread::{self, JoinHandle};
-
-use crossbeam_channel::{ self, unbounded, Sender, Receiver };
+use log::{ debug, error };
+// use crossbeam_channel::{ self, unbounded, Sender, Receiver };
+use tokio::sync::mpsc;
 
 use super::parser;
 use super::table;
 use super::db;
+use std::panic::AssertUnwindSafe;
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
@@ -53,17 +55,17 @@ impl TokenExpr {
         }
     }
 
-    pub fn parse_count(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
+    pub async fn parse_count(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
 
         for _ in 1..self.count.unwrap_or(1) {
-            match rx.recv() {
-                Ok(InputToken::Channel(text)) => {
+            match rx.recv().await {
+                Some(InputToken::Channel(text)) => {
                     if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                         results.append(&mut row);
                     }
                 },
-                Ok(InputToken::Byte(b'\0')) => return (true, results),
+                Some(InputToken::Byte(b'\0')) => return (true, results),
                 _ => break
             }
         }
@@ -71,19 +73,19 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn parse_many(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
+    pub async fn parse_many(&self, mut rx: mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
 
         loop {
-            match rx.recv() {
-                Ok(InputToken::Channel(text)) => {
+            match rx.recv().await {
+                Some(InputToken::Channel(text)) => {
                     if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                         results.append(&mut row);
                     } else {
                         break
                     }
                 },
-                Ok(InputToken::Byte(b'\0')) => return (true, results),
+                Some(InputToken::Byte(b'\0')) => return (true, results),
                 _ => break
             }
         }
@@ -91,11 +93,14 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn evaluate(&self, rx: &Receiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
+    pub async fn evaluate(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
+        debug!("evaluate");
 
-        match rx.recv() {
-            Ok(InputToken::Channel(text)) => {
+        match rx.recv().await {
+            Some(InputToken::Channel(text)) => {
+                debug!("Text +> {:?}", text);
+
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
 
@@ -103,22 +108,22 @@ impl TokenExpr {
                         self.parse_count(rx, syn);
                     } else if self.many.is_some() {
                         loop {
-                            match rx.recv() {
-                                Ok(InputToken::Channel(text)) => {
+                            match rx.recv().await {
+                                Some(InputToken::Channel(text)) => {
                                     if let Ok((_, mut row)) = self.parse(&text[..], syn) {
                                         results.append(&mut row);
                                     } else {
                                         break
                                     }
                                 },
-                                Ok(InputToken::Byte(b'\0')) => return (true, results),
+                                Some(InputToken::Byte(b'\0')) => return (true, results),
                                 _ => break
                             }
                         }
                     }
                 }
             },
-            Ok(InputToken::Byte(b'\0')) => return (true, results),
+            Some(InputToken::Byte(b'\0')) => return (true, results),
             _ => {}
         }
 
@@ -246,64 +251,27 @@ pub fn slice_to_string(s: &[u8]) -> String {
     String::from_utf8(s.to_vec()).unwrap()
 }
 
-pub struct App<'a> {
-    tx: Sender<InputToken>,
-    pub handler: Option<JoinHandle<()>>,
-    config: &'a AppConfig,
-    pub db: std::sync::Arc<std::sync::Mutex<db::Glue>>,
+pub struct App {
+    tx: mpsc::UnboundedSender<InputToken>,
+    // pub handler: Option<JoinHandle<()>>,
+    config: AppConfig,
+    pub db: db::Glue,
 }
 
-impl<'a> App<'a> {
-    pub fn new_with_config(config: &AppConfig) -> anyhow::Result<App> {
-        let (tx, rx): (Sender<InputToken>, Receiver<InputToken>) = unbounded();
-        let templates = config.templates.clone();
-
-        let db= std::sync::Arc::new(std::sync::Mutex::new(db::Glue::new()));
-        let _ = db.lock().unwrap().create_table();
-        let db1 = db.clone();
-
-        let handler = thread::spawn(move || {
-            let first = templates.first().unwrap();
-            let rest = &templates[1..];
-            let syn = parser::Syntax::default();
-            let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
-
-            'main: loop {
-                let (is_break, mut row) = first.evaluate(&rx, &syn);
-                rows.append(&mut row);
-
-                if !rest.is_empty() {
-                    for template in rest {
-                        let (is_break, mut row) = template.evaluate(&rx, &syn);
-                        rows.append(&mut row);
-                        
-                        if is_break {
-                            break 'main;
-                        }
-                    }
-                }
-               
-                if is_break {
-                    break;
-                } 
-            }
-
-            let _ = db1.lock().unwrap().insert(serde_yaml::to_string(&rows).unwrap().as_str());
-            // let writer = BufWriter::new(io::stdout());
-            // let _ = table::printstd(&mut writer, &rows);
-        });
-
+impl App {
+    pub async fn new_with_config(tx: mpsc::UnboundedSender<InputToken>, config: AppConfig) -> anyhow::Result<App> {
+        let db= db::Glue::new();
 
         Ok(App {
             tx,
             config,
             db,
-            handler: Some(handler),
+            //handler: Some(handler),
         })
     }
 
-    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
-        self.db.lock().unwrap().execute(query.as_str())
+    pub fn execute_query(&mut self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
+        self.db.execute(query.as_str())
     }
 
     pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {
@@ -317,4 +285,34 @@ impl<'a> App<'a> {
         
         Ok(())
     }
+
+    pub async fn handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, db: &mut db::Glue, templates: Vec<TokenExpr>) {
+        let first = templates.first().unwrap();
+        let rest = &templates[1..];
+        let syn = parser::Syntax::default();
+        let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
+
+        'main: loop {
+            let (is_break, mut row) = first.evaluate(rx, &syn).await;
+            rows.append(&mut row);
+
+            if !rest.is_empty() {
+                for template in rest {
+                    let (is_break, mut row) = template.evaluate(rx, &syn).await;
+                    rows.append(&mut row);
+                    
+                    if is_break {
+                        break 'main;
+                    }
+                }
+            }
+        
+            if is_break {
+                break;
+            } 
+
+            db.insert(serde_yaml::to_string(&rows).unwrap().as_str());
+        }
+    }
+
 }
