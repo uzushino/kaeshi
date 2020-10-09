@@ -260,7 +260,8 @@ pub struct App {
 
 impl App {
     pub async fn new_with_config(tx: mpsc::UnboundedSender<InputToken>, config: AppConfig) -> anyhow::Result<App> {
-        let db= db::Glue::new();
+        let mut db= db::Glue::new();
+        db.create_table();
 
         Ok(App {
             tx,
@@ -286,7 +287,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, db: &mut db::Glue, templates: Vec<TokenExpr>) {
+    pub async fn handler(&mut self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) {
         let first = templates.first().unwrap();
         let rest = &templates[1..];
         let syn = parser::Syntax::default();
@@ -311,7 +312,7 @@ impl App {
                 break;
             } 
 
-            db.insert(serde_yaml::to_string(&rows).unwrap().as_str());
+            self.db.insert(serde_yaml::to_string(&rows).unwrap().as_str());
         }
     }
 

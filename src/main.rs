@@ -72,21 +72,24 @@ async fn main() -> anyhow::Result<()> {
     ); 
 
     let app1 = mutex_app.clone();
-    let handler1 = tokio::spawn(async move {
-        let mut db = db::Glue::new();
-        db.create_table();
-        app1.lock_owned().await.handler(&mut rx, &mut db, templates).await;
-    });
+    let handler1 = async move {
+        app1.lock_owned().await.handler(&mut rx, templates).await;
+    };
+
     debug!("aaa");
+
     let app2 = mutex_app.clone();
-    let handler2 = tokio::spawn(async move {
+    let handler2 = async move {
         let app2 = app2.lock_owned().await;
         handler(&app2).await;
-    });
+    };
 
     debug!("bbb");
-    tokio::join!(handler1, handler2);
-    debug!("ccc");
+    let res = tokio::join!(
+        handler2, 
+        handler1
+    );
+    debug!("Res: {:?}", res);
 
     /*
     app.handler.unwrap()
@@ -95,16 +98,9 @@ async fn main() -> anyhow::Result<()> {
     */
     if let Some(query) = opt.query {
         debug!("q {:?}", query);
-        if let Ok(result) = mutex_app.lock_owned().await.db.execute(query.as_str()) {
-            debug!("Result: {:?}", result);
-            match result {
-                Some(gluesql::Payload::Select(stmt)) => {
-                    for record in stmt {
-                    }
-                }
-                _ => {}
-            }
-        }
+        let mut app = mutex_app.lock_owned().await;
+        let result = app.db.execute(query.as_str());
+        debug!("Result: {:?}", result);
     }         
 
     Ok(())
@@ -112,7 +108,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn handler(app: &app::App) -> anyhow::Result<()> { 
     let stdin = std::io::stdin();
-    println!("aaabbbb");
+
     loop {
         let mut buf = Vec::with_capacity(1024usize);
 
