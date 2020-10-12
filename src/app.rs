@@ -17,6 +17,7 @@ use super::parser;
 use super::table;
 use super::db;
 use std::panic::AssertUnwindSafe;
+use std::io::{ BufRead };
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
@@ -255,7 +256,7 @@ pub struct App {
     tx: mpsc::UnboundedSender<InputToken>,
     // pub handler: Option<JoinHandle<()>>,
     config: AppConfig,
-    pub db: db::Glue,
+    pub db: std::cell::RefCell<db::Glue>,
 }
 
 impl App {
@@ -266,13 +267,13 @@ impl App {
         Ok(App {
             tx,
             config,
-            db,
+            db: std::cell::RefCell::new(db),
             //handler: Some(handler),
         })
     }
 
-    pub fn execute_query(&mut self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
-        self.db.execute(query.as_str())
+    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
+        self.db.borrow_mut().execute(query.as_str())
     }
 
     pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {
@@ -287,7 +288,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn handler(&mut self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) {
+    pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) {
         let first = templates.first().unwrap();
         let rest = &templates[1..];
         let syn = parser::Syntax::default();
@@ -312,8 +313,36 @@ impl App {
                 break;
             } 
 
-            self.db.insert(serde_yaml::to_string(&rows).unwrap().as_str());
+            self.db.borrow_mut().insert(serde_yaml::to_string(&rows).unwrap().as_str());
         }
     }
 
+    pub async fn input_handler(&self) -> anyhow::Result<()> { 
+        let stdin = std::io::stdin();
+
+        loop {
+            let mut buf = Vec::with_capacity(1024usize);
+
+            match stdin.lock().read_until(b'\n', &mut buf) {
+                Ok(n) => {
+                    let line = String::from_utf8_lossy(&buf).to_string();
+                    debug!("input line: {}", line);
+
+                    if n == 0 {
+                        debug!("eof");
+                        self.send_byte(b'\0')?;
+                        break;
+                    }
+                    
+                    self.send_string(line.to_string())?;
+                }
+                Err(e) => {
+                    error!("{}", e.to_string());
+                    break;
+                },
+            }
+        }
+
+        Ok(())
+    }
 }
