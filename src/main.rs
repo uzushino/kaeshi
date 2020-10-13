@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     if let Some(query) = opt.query {
-        let result = app.db.borrow_mut().execute(query.as_str());
+        let result = app.execute(query.as_str())?;
         debug!("Result: {:?}", result);
     }         
 

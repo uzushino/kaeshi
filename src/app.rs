@@ -345,4 +345,9 @@ impl App {
 
         Ok(())
     }
+
+    pub fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql::Payload>> {
+        let result = self.db.borrow_mut().execute(sql);
+        result
+    }
 }
