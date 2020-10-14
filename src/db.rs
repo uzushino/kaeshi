@@ -19,16 +19,13 @@ impl Glue {
     }
 
     pub fn create_table(&mut self) -> anyhow::Result<Option<Payload>> {
-        self.execute("CREATE TABLE JsonStore (msg TEXT, created_at TEXT);")
+        self.execute("CREATE TABLE TextStore (msg TEXT, created_at TEXT);")
     }
     
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
-
-        log::debug!("{:?}", msg);
-
         self.execute(
-            format!(r#"INSERT INTO JsonStore VALUES ("{}", "{}")"#, msg, local.to_rfc3339()).as_str())
+            format!(r#"INSERT INTO TextStore VALUES ("{}", "{}")"#, msg, local.to_rfc3339()).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
@@ -36,15 +33,14 @@ impl Glue {
 
         let q = query.get(0);
         if let Some(q) = q {
-            let strage = self.storage.take().unwrap();
+            let storage = self.storage.take().unwrap();
             
-            if let Ok((s, payload)) =  gluesql::execute(strage.clone(), &q) {
+            if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q) {
                 self.storage = Some(s);
                 return Ok(Some(payload));
             } else {
-                self.storage = Some(strage);
+                self.storage = Some(storage);
             }
-            
         }
 
         Err(anyhow!("Error: {}", sql))
@@ -61,7 +57,7 @@ mod test {
         glue.create_table();
         glue.insert("Hoge");
 
-        let query = glue.execute("SELECT * FROM JsonStore;");
+        let query = glue.execute("SELECT * FROM TextStore;");
         match query {
             Ok(Some(Payload::Select(v))) => {
                 println!("{:?}", v);

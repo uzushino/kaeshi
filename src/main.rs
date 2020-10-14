@@ -58,7 +58,6 @@ async fn main() -> anyhow::Result<()> {
             .collect::<Vec<_>>();
 
         config.templates.append(&mut tokens);
-
         config
     };
 
@@ -66,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
     let templates = config.templates.clone();
 
     let app = app::App::new_with_config(tx, config).await?;
-    let res = tokio::join!(
+    let _ret = tokio::join!(
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
     );
