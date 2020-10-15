@@ -18,6 +18,7 @@ use super::table;
 use super::db;
 use std::panic::AssertUnwindSafe;
 use std::io::{ BufRead };
+use std::collections::{ HashSet };
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
@@ -262,8 +263,7 @@ pub struct App {
 impl App {
     pub async fn new_with_config(tx: mpsc::UnboundedSender<InputToken>, config: AppConfig) -> anyhow::Result<App> {
         let mut db= db::Glue::new();
-        db.create_table();
-
+        
         Ok(App {
             tx,
             config,
@@ -312,9 +312,19 @@ impl App {
             if is_break {
                 break;
             } 
-
-            self.db.borrow_mut().insert(serde_yaml::to_string(&rows).unwrap().as_str());
         }
+
+        let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
+            let ks: HashSet<String> =
+                row.keys().cloned().collect();
+
+            acc.union(&ks)
+                .cloned()
+                .collect::<HashSet<String>>() 
+        });
+
+        self.db.borrow_mut().create_table(titles.iter().collect());
+        self.db.borrow_mut().insert(serde_yaml::to_string(&rows).unwrap().as_str());
     }
 
     pub async fn input_handler(&self) -> anyhow::Result<()> { 

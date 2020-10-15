@@ -18,8 +18,13 @@ impl Glue {
         }
     }
 
-    pub fn create_table(&mut self) -> anyhow::Result<Option<Payload>> {
-        self.execute("CREATE TABLE TextStore (msg TEXT, created_at TEXT);")
+    pub fn create_table(&mut self, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
+        let s: Vec<String> = columns
+            .iter()
+            .map(|s| format!("{} TEXT", s))
+            .collect();
+        let s = s.join(",");
+        self.execute(format!("CREATE TABLE TextStore ({}, created_at TEXT);", s).as_str())
     }
     
     pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
@@ -54,7 +59,6 @@ mod test {
     fn it_select() {
         let mut glue = Glue::new();
 
-        glue.create_table();
         glue.insert("Hoge");
 
         let query = glue.execute("SELECT * FROM TextStore;");
