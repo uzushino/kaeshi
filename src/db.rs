@@ -1,11 +1,13 @@
 use anyhow::anyhow;
 use gluesql::Payload;
 use chrono::prelude::*;
+use std::collections::BTreeMap;
 
 use super::storage::Storage;
 
 #[derive(Clone)]
 pub struct Glue {
+    columns: Vec<String>,
     storage: Option<Storage>
 }
 
@@ -14,6 +16,7 @@ impl Glue {
         let storage = Storage::new().unwrap();
         
         Glue {
+            columns: Vec::default(),
             storage: Some(storage)
         }
     }
@@ -24,24 +27,36 @@ impl Glue {
             .map(|s| format!("{} TEXT", s))
             .collect();
         let s = s.join(",");
+
         self.execute(format!("CREATE TABLE TextStore ({}, created_at TEXT);", s).as_str())
     }
     
-    pub fn insert(&mut self, msg: &str) -> anyhow::Result<Option<Payload>> {
+    pub fn insert(&mut self, row: BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
+        let c = self.columns
+            .iter()
+            .map(|c| {
+                let a = row.get(c).unwrap_or(&String::default());
+                format!("'{}'", a)
+            })
+            .collect::<Vec<_>>();
+
         self.execute(
-            format!(r#"INSERT INTO TextStore VALUES ("{}", "{}")"#, msg, local.to_rfc3339()).as_str())
+            format!(r#"INSERT INTO TextStore VALUES ({}, "{}")"#, c.join(","), local.to_rfc3339()).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
-        let query = gluesql::parse(sql)?;
+        log::debug!("sql=> {}", sql);
 
+        let query = gluesql::parse(sql)?;
         let q = query.get(0);
+
         if let Some(q) = q {
             let storage = self.storage.take().unwrap();
             
             if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q) {
                 self.storage = Some(s);
+
                 return Ok(Some(payload));
             } else {
                 self.storage = Some(storage);

@@ -324,7 +324,8 @@ impl App {
         });
 
         self.db.borrow_mut().create_table(titles.iter().collect());
-        self.db.borrow_mut().insert(serde_yaml::to_string(&rows).unwrap().as_str());
+
+        self.db.borrow_mut().insert(rows);
     }
 
     pub async fn input_handler(&self) -> anyhow::Result<()> { 
