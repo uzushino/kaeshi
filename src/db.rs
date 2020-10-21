@@ -27,17 +27,21 @@ impl Glue {
             .map(|s| format!("{} TEXT", s))
             .collect();
         let s = s.join(",");
+        self.columns = columns
+            .iter()
+            .map(|c| c.to_string())
+            .collect();
 
         self.execute(format!("CREATE TABLE TextStore ({}, created_at TEXT);", s).as_str())
     }
     
-    pub fn insert(&mut self, row: BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
+    pub fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
         let c = self.columns
             .iter()
             .map(|c| {
-                let a = row.get(c).unwrap_or(&String::default());
-                format!("'{}'", a)
+                let a = row.get(c).map(|c| c.to_string()).unwrap_or(String::default());
+                format!(r#""{}""#, a.clone())
             })
             .collect::<Vec<_>>();
 

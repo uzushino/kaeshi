@@ -325,7 +325,9 @@ impl App {
 
         self.db.borrow_mut().create_table(titles.iter().collect());
 
-        self.db.borrow_mut().insert(rows);
+        for row in rows.iter() {
+            self.db.borrow_mut().insert(row);
+        }
     }
 
     pub async fn input_handler(&self) -> anyhow::Result<()> { 
