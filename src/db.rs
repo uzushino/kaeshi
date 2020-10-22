@@ -7,6 +7,7 @@ use super::storage::Storage;
 
 #[derive(Clone)]
 pub struct Glue {
+    table_name: Option<String>,
     columns: Vec<String>,
     storage: Option<Storage>
 }
@@ -16,25 +17,33 @@ impl Glue {
         let storage = Storage::new().unwrap();
         
         Glue {
+            table_name: None,
             columns: Vec::default(),
             storage: Some(storage)
         }
     }
 
-    pub fn create_table(&mut self, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
-        let s: Vec<String> = columns
-            .iter()
-            .map(|s| format!("{} TEXT", s))
-            .collect();
-        let s = s.join(",");
+    pub fn create_table(&mut self, table_name: Option<String>, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
+        self.table_name = table_name;
+
         self.columns = columns
             .iter()
             .map(|c| c.to_string())
             .collect();
 
-        self.execute(format!("CREATE TABLE TextStore ({}, created_at TEXT);", s).as_str())
+        let s: Vec<String> = self.columns
+            .iter()
+            .map(|s| format!("{} TEXT", s))
+            .collect();
+        let s = s.join(",");
+
+        self.execute(format!("CREATE TABLE {} ({}, created_at TEXT);", self.table_name(), s).as_str())
     }
-    
+   
+    fn table_name(&self) -> String {
+        self.table_name.as_ref().unwrap_or(&"main".to_string()).to_string()
+    }
+
     pub fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
         let c = self.columns
@@ -46,7 +55,7 @@ impl Glue {
             .collect::<Vec<_>>();
 
         self.execute(
-            format!(r#"INSERT INTO TextStore VALUES ({}, "{}")"#, c.join(","), local.to_rfc3339()).as_str())
+            format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, self.table_name(), c.join(","), local.to_rfc3339()).as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
@@ -80,7 +89,7 @@ mod test {
 
         glue.insert("Hoge");
 
-        let query = glue.execute("SELECT * FROM TextStore;");
+        let query = glue.execute("SELECT * FROM main;");
         match query {
             Ok(Some(Payload::Select(v))) => {
                 println!("{:?}", v);

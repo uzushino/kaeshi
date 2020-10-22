@@ -323,7 +323,7 @@ impl App {
                 .collect::<HashSet<String>>() 
         });
 
-        self.db.borrow_mut().create_table(titles.iter().collect());
+        self.db.borrow_mut().create_table(None, titles.iter().collect());
 
         for row in rows.iter() {
             self.db.borrow_mut().insert(row);
