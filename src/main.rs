@@ -1,6 +1,8 @@
 use log::{ debug, error };
 use structopt::StructOpt;
 use tokio::sync::mpsc;
+use std::collections::HashMap;
+
 mod parser;
 mod table;
 mod db;
@@ -72,6 +74,20 @@ async fn main() -> anyhow::Result<()> {
 
     if let Some(query) = opt.query {
         let result = app.execute(query.as_str())?;
+        match result {
+           Some(gluesql::Payload::Select(row)) => {
+               let f = |r| { 
+                   match r {
+                       gluesql::data::Value::Str(s) => s,
+                       _ => String::default()
+                   }
+               };
+
+               let row = row.iter().map(|r| r.0.iter().map(f)).collect();
+           },
+           _ => {}
+        };
+
         debug!("Result: {:?}", result);
     }         
 

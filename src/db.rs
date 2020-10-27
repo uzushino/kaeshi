@@ -87,8 +87,6 @@ mod test {
     fn it_select() {
         let mut glue = Glue::new();
 
-        glue.insert("Hoge");
-
         let query = glue.execute("SELECT * FROM main;");
         match query {
             Ok(Some(Payload::Select(v))) => {
