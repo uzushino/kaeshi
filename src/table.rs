@@ -38,3 +38,15 @@ pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyho
         .print(&mut writer)
         .map_err(|_| anyhow::anyhow!("Cannot write output"))
 }
+
+pub fn printstd_noheader<W>(mut writer: W, rows: &Vec<Vec<String>>) -> anyhow::Result<usize> where W: Write  { 
+    let mut table = Table::new();
+
+    for row in rows {
+        table.add_row(Row::new(row.iter().map(|c| Cell::new(c)).collect()));
+    }
+
+    table
+        .print(&mut writer)
+        .map_err(|_| anyhow::anyhow!("Cannot write output"))
+}

@@ -1,7 +1,7 @@
 use log::{ debug, error };
 use structopt::StructOpt;
 use tokio::sync::mpsc;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 mod parser;
 mod table;
@@ -76,19 +76,18 @@ async fn main() -> anyhow::Result<()> {
         let result = app.execute(query.as_str())?;
         match result {
            Some(gluesql::Payload::Select(row)) => {
-               let f = |r| { 
+               let f = |r: &gluesql::data::Value| { 
                    match r {
-                       gluesql::data::Value::Str(s) => s,
+                       gluesql::data::Value::Str(s) => s.clone(),
                        _ => String::default()
                    }
                };
 
-               let row = row.iter().map(|r| r.0.iter().map(f)).collect();
+               let row = row.iter().map(|r| r.0.iter().map(f).collect::<Vec<_>>()).collect::<Vec<_>>();
+               table::printstd_noheader(std::io::stdout(), &row);
            },
            _ => {}
         };
-
-        debug!("Result: {:?}", result);
     }         
 
     Ok(())
