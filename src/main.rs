@@ -60,13 +60,14 @@ async fn main() -> anyhow::Result<()> {
             .collect::<Vec<_>>();
 
         config.templates.append(&mut tokens);
+
         config
     };
 
     let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
-
     let app = app::App::new_with_config(tx, config).await?;
+
     let _ret = tokio::join!(
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
@@ -83,8 +84,12 @@ async fn main() -> anyhow::Result<()> {
                    }
                };
 
-               let row = row.iter().map(|r| r.0.iter().map(f).collect::<Vec<_>>()).collect::<Vec<_>>();
-               table::printstd_noheader(std::io::stdout(), &row);
+               let row = row
+                    .iter()
+                    .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+               
+                table::printstd_noheader(std::io::stdout(), &row)?;
            },
            _ => {}
         };

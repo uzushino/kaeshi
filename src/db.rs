@@ -31,11 +31,11 @@ impl Glue {
             .map(|c| c.to_string())
             .collect();
 
-        let s: Vec<String> = self.columns
+        let s = self.columns
             .iter()
             .map(|s| format!("{} TEXT", s))
-            .collect();
-        let s = s.join(",");
+            .collect::<Vec<_>>()
+            .join(",");
 
         self.execute(format!("CREATE TABLE {} ({}, created_at TEXT);", self.table_name(), s).as_str())
     }
@@ -69,7 +69,6 @@ impl Glue {
             
             if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q) {
                 self.storage = Some(s);
-
                 return Ok(Some(payload));
             } else {
                 self.storage = Some(storage);
