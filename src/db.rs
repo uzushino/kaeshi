@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use gluesql::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
+use sql_builder::esc;
 
 use super::storage::Storage;
 
@@ -33,7 +34,7 @@ impl Glue {
 
         let s = self.columns
             .iter()
-            .map(|s| format!("{} TEXT", s))
+            .map(|s| format!(r#""{}" TEXT"#, s))
             .collect::<Vec<_>>()
             .join(",");
 
@@ -46,16 +47,24 @@ impl Glue {
 
     pub fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
+
         let c = self.columns
             .iter()
             .map(|c| {
                 let a = row.get(c).map(|c| c.to_string()).unwrap_or(String::default());
-                format!(r#""{}""#, a.clone())
+                format!(r#"{}"#, esc(a.as_str()).to_string())
             })
             .collect::<Vec<_>>();
 
-        self.execute(
-            format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, self.table_name(), c.join(","), local.to_rfc3339()).as_str())
+        let sql = { 
+            format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 
+                self.table_name().as_str(), 
+                c.join(","), 
+                esc(local.to_rfc3339().as_str())
+            )
+        };
+
+        self.execute(sql.as_str())
     }
 
     pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {

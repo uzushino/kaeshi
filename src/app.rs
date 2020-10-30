@@ -101,7 +101,7 @@ impl TokenExpr {
 
         match rx.recv().await {
             Some(InputToken::Channel(text)) => {
-                debug!("Text +> {:?}", text);
+                debug!("Text +> {:?}, tag => {:?}", text, &self.tag);
 
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
@@ -288,7 +288,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) {
+    pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) -> anyhow::Result<()> {
         let first = templates.first().unwrap();
         let rest = &templates[1..];
         let syn = parser::Syntax::default();
@@ -323,11 +323,13 @@ impl App {
                 .collect::<HashSet<String>>() 
         });
 
-        self.db.borrow_mut().create_table(None, titles.iter().collect());
+        self.db.borrow_mut().create_table(None, titles.iter().collect())?;
 
         for row in rows.iter() {
-            self.db.borrow_mut().insert(row);
+            self.db.borrow_mut().insert(row)?;
         }
+
+        Ok(())
     }
 
     pub async fn input_handler(&self) -> anyhow::Result<()> { 
@@ -360,7 +362,6 @@ impl App {
     }
 
     pub fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql::Payload>> {
-        let result = self.db.borrow_mut().execute(sql);
-        result
+        self.db.borrow_mut().execute(sql)
     }
 }

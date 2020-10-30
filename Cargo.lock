@@ -677,6 +677,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sql-builder"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1008d95d2ec2d062959352527be30e10fec42a1aa5e5a48d990a5ff0fb9bdc0"
+dependencies = [
+ "anyhow",
+ "thiserror",
+]
+
+[[package]]
 name = "sqlparser"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -780,6 +790,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "sql-builder",
  "structopt",
  "tokio",
 ]

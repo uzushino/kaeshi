@@ -19,6 +19,7 @@ serde_json = "1.0"
 structopt = "*"
 anyhow = "*"
 gluesql = "*"
+sql-builder = "*"
 chrono = "*"
 tokio = { version = "*", features = ["sync", "rt-core", "macros"] }
 log = "0.4.0"
