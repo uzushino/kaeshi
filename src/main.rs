@@ -30,6 +30,12 @@ struct Opt {
     
     #[structopt(short, long)]
     pub query: Option<String>,
+
+    #[structopt(short, long)]
+    pub dump: Option<String>,
+    
+    #[structopt(short, long)]
+    pub restore: Option<String>,
 }
 
 #[tokio::main]
