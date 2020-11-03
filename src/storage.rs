@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use gluesql::{MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut};
+use gluesql::{MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, AlterTable};
+use sqlparser::ast::{ColumnDef};
 
 #[derive(Clone, Debug)]
 pub struct DataKey {
@@ -78,7 +79,7 @@ impl StoreMut<DataKey> for Storage {
         Ok((storage, ()))
     }
 
-    fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, Row> {
+    fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, ()> {
         let DataKey { table_name, id } = key;
         let (id, _row)= (*id, row.clone());
 
@@ -115,7 +116,7 @@ impl StoreMut<DataKey> for Storage {
             id: self_id,
         };
 
-        Ok((storage, row.clone()))
+        Ok((storage, ()))
     }
 
     fn delete_data(self, _key: &DataKey) -> MutResult<Self, ()> {
@@ -153,5 +154,33 @@ impl Store<DataKey> for Storage {
         let items = items.into_iter().map(Ok);
 
         Ok(Box::new(items))
+    }
+}
+
+impl AlterTable for Storage {
+    fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
+        Ok((self, ()))
+    }
+
+    fn rename_column(
+        self,
+        table_name: &str,
+        old_column_name: &str,
+        new_column_name: &str,
+    ) -> MutResult<Self, ()> {
+        Ok((self, ()))
+    }
+
+    fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()> {
+        Ok((self, ()))
+    }
+
+    fn drop_column(
+        self,
+        table_name: &str,
+        column_name: &str,
+        if_exists: bool,
+    ) -> MutResult<Self, ()> {
+        Ok((self, ()))
     }
 }

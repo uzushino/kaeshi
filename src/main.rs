@@ -82,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
     if let Some(query) = opt.query {
         let result = app.execute(query.as_str())?;
         match result {
-           Some(gluesql::Payload::Select(row)) => {
+           Some(gluesql::Payload::Select { aliases: _, rows: row}) => {
                let f = |r: &gluesql::data::Value| { 
                    match r {
                        gluesql::data::Value::Str(s) => s.clone(),

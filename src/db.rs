@@ -97,7 +97,7 @@ mod test {
 
         let query = glue.execute("SELECT * FROM main;");
         match query {
-            Ok(Some(Payload::Select(v))) => {
+            Ok(Some(Payload::Select { aliases: _, rows: v})) => {
                 println!("{:?}", v);
             },
             n => { println!("{:?}", n) }
