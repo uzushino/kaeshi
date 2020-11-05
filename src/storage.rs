@@ -9,13 +9,13 @@ pub struct DataKey {
 }
 
 #[derive(Clone)]
-pub struct Storage {
+pub struct MemoryStorage {
     schema_map: HashMap<String, Schema>,
     data_map: HashMap<String, Vec<(u64, Row)>>,
     id: u64,
 }
 
-impl Storage {
+impl MemoryStorage {
     pub fn new() -> Result<Self> {
         let schema_map = HashMap::new();
         
@@ -27,7 +27,7 @@ impl Storage {
     }
 }
 
-impl StoreMut<DataKey> for Storage {
+impl StoreMut<DataKey> for MemoryStorage {
     fn generate_id(self, table_name: &str) -> MutResult<Self, DataKey> {
         let id = self.id + 1;
 
@@ -124,7 +124,7 @@ impl StoreMut<DataKey> for Storage {
     }
 }
 
-impl Store<DataKey> for Storage {
+impl Store<DataKey> for MemoryStorage {
     fn fetch_schema(&self, table_name: &str) -> Result<Schema> {
         let schema = self
             .schema_map
@@ -157,17 +157,12 @@ impl Store<DataKey> for Storage {
     }
 }
 
-impl AlterTable for Storage {
+impl AlterTable for MemoryStorage {
     fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    fn rename_column(
-        self,
-        table_name: &str,
-        old_column_name: &str,
-        new_column_name: &str,
-    ) -> MutResult<Self, ()> {
+    fn rename_column(self, table_name: &str, old_column_name: &str, new_column_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
@@ -175,12 +170,7 @@ impl AlterTable for Storage {
         Ok((self, ()))
     }
 
-    fn drop_column(
-        self,
-        table_name: &str,
-        column_name: &str,
-        if_exists: bool,
-    ) -> MutResult<Self, ()> {
+    fn drop_column(self, table_name: &str, column_name: &str, if_exists: bool) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }

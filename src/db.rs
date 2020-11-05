@@ -4,18 +4,18 @@ use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
 
-use super::storage::Storage;
+use super::storage::MemoryStorage;
 
 #[derive(Clone)]
 pub struct Glue {
     table_name: Option<String>,
     columns: Vec<String>,
-    storage: Option<Storage>
+    storage: Option<MemoryStorage>
 }
 
 impl Glue {
     pub fn new() -> Self {
-        let storage = Storage::new().unwrap();
+        let storage = MemoryStorage::new().unwrap();
         
         Glue {
             table_name: None,
