@@ -79,27 +79,27 @@ async fn main() -> anyhow::Result<()> {
         app.parse_handler(&mut rx, templates)
     );
 
-    if let Some(query) = opt.query {
-        let result = app.execute(query.as_str())?;
-        match result {
-           Some(gluesql::Payload::Select { aliases: _, rows: row}) => {
-               let f = |r: &gluesql::data::Value| { 
-                   match r {
-                       gluesql::data::Value::Str(s) => s.clone(),
-                       _ => String::default()
-                   }
-               };
+    let query = opt.query.unwrap_or("SELECT * FROM main".to_string());
+    let result = app.execute(query.as_str())?;
 
-               let row = row
-                    .iter()
-                    .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
-                    .collect::<Vec<_>>();
-               
-                table::printstd_noheader(std::io::stdout(), &row)?;
-           },
-           _ => {}
-        };
-    }         
+    match result {
+        Some(gluesql::Payload::Select { aliases: _, rows: row}) => {
+            let f = |r: &gluesql::data::Value| { 
+                match r {
+                    gluesql::data::Value::Str(s) => s.clone(),
+                    _ => String::default()
+                }
+            };
+
+            let row = row
+                .iter()
+                .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
+                .collect::<Vec<_>>();
+            
+            table::printstd_noheader(std::io::stdout(), &row)?;
+        },
+        _ => {}
+    };
 
     Ok(())
 }

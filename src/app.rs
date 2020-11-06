@@ -19,7 +19,6 @@ use super::db;
 use std::panic::AssertUnwindSafe;
 use std::io::{ BufRead };
 use std::collections::{ HashSet };
-
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
    Regex(String),
