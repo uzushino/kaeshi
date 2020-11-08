@@ -91,12 +91,16 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let row = row
+            let records= row
                 .iter()
                 .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             
-            table::printstd_noheader(std::io::stdout(), &row)?;
+            table::printstd_noheader(std::io::stdout(), &records)?;
+
+            if opt.dump.is_some() {
+                std::fs::write(opt.dump.unwrap(), serde_json::to_string(&records)?);
+            }
         },
         _ => {}
     };
