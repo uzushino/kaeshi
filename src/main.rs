@@ -98,8 +98,8 @@ async fn main() -> anyhow::Result<()> {
             
             table::printstd_noheader(std::io::stdout(), &records)?;
 
-            if opt.dump.is_some() {
-                std::fs::write(opt.dump.unwrap(), serde_json::to_string(&records)?);
+            if let Some(dump) = opt.dump {
+                std::fs::write(dump, serde_json::to_string(&records)?)?;
             }
         },
         _ => {}
