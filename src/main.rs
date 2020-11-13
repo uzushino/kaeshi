@@ -73,6 +73,15 @@ async fn main() -> anyhow::Result<()> {
     let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
     let app = app::App::new_with_config(tx, config).await?;
+            
+    if let Some(restore) = opt.restore {
+        let content = std::fs::read_to_string(restore)?;
+        let records: Vec<std::collections::BTreeMap<String, String>> = serde_json::from_str(content.as_str())?;
+
+        for record in records {
+            app.db.borrow_mut().insert(&record)?;
+        }
+    }
 
     let _ret = tokio::join!(
         app.input_handler(),
