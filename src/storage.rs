@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use std::collections::HashMap;
 use gluesql::{MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, AlterTable};
 use sqlparser::ast::{ColumnDef};
@@ -27,8 +29,9 @@ impl MemoryStorage {
     }
 }
 
+#[async_trait(?Send)]
 impl StoreMut<DataKey> for MemoryStorage {
-    fn generate_id(self, table_name: &str) -> MutResult<Self, DataKey> {
+    async fn generate_id(self, table_name: &str) -> MutResult<Self, DataKey> {
         let id = self.id + 1;
 
         let storage = Self {
@@ -42,10 +45,10 @@ impl StoreMut<DataKey> for MemoryStorage {
             id,
         };
 
-        Ok((storage, key))
+        Ok((self, key))
     }
 
-    fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
+    async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
         let table_name = schema.table_name.to_string();
         let mut s= HashMap::default();
 
@@ -60,7 +63,7 @@ impl StoreMut<DataKey> for MemoryStorage {
         Ok((storage, ()))
     }
 
-    fn delete_schema(self, table_name: &str) -> MutResult<Self, ()> {
+    async fn delete_schema(self, table_name: &str) -> MutResult<Self, ()> {
         let Self {
             mut schema_map,
             mut data_map,
@@ -79,7 +82,7 @@ impl StoreMut<DataKey> for MemoryStorage {
         Ok((storage, ()))
     }
 
-    fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, ()> {
+    async fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, ()> {
         let DataKey { table_name, id } = key;
         let (id, _row)= (*id, row.clone());
 
@@ -119,13 +122,14 @@ impl StoreMut<DataKey> for MemoryStorage {
         Ok((storage, ()))
     }
 
-    fn delete_data(self, _key: &DataKey) -> MutResult<Self, ()> {
+    async fn delete_data(self, _key: &DataKey) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }
 
+#[async_trait(?Send)]
 impl Store<DataKey> for MemoryStorage {
-    fn fetch_schema(&self, table_name: &str) -> Result<Schema> {
+    async fn fetch_schema(&self, table_name: &str) -> Result<Schema> {
         let schema = self
             .schema_map
             .get(table_name)
@@ -135,7 +139,7 @@ impl Store<DataKey> for MemoryStorage {
         Ok(schema)
     }
 
-    fn scan_data(&self, table_name: &str) -> Result<RowIter<DataKey>> {
+    async fn scan_data(&self, table_name: &str) -> Result<RowIter<DataKey>> {
         let items = match self.data_map.get(table_name) {
             Some(items) => items
                 .iter()
@@ -157,20 +161,21 @@ impl Store<DataKey> for MemoryStorage {
     }
 }
 
+#[async_trait(?Send)]
 impl AlterTable for MemoryStorage {
-    fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
+    async fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    fn rename_column(self, table_name: &str, old_column_name: &str, new_column_name: &str) -> MutResult<Self, ()> {
+    async fn rename_column(self, table_name: &str, old_column_name: &str, new_column_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()> {
+    async fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    fn drop_column(self, table_name: &str, column_name: &str, if_exists: bool) -> MutResult<Self, ()> {
+    async fn drop_column(self, table_name: &str, column_name: &str, if_exists: bool) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }

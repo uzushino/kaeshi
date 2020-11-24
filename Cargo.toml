@@ -25,5 +25,6 @@ chrono = "*"
 tokio = { version = "*", features = ["sync", "rt-core", "macros"] }
 log = "0.4.0"
 env_logger = "0.7.1"
+async-trait = "*"
 
 regex = "1"
