@@ -1,8 +1,11 @@
 use async_trait::async_trait;
 
-use std::collections::HashMap;
-use gluesql::{MutResult, Result, Row, RowIter, Schema, Store, StoreError, StoreMut, AlterTable};
-use sqlparser::ast::{ColumnDef};
+use im::{vector, HashMap, Vector};
+
+use gluesql_core::parser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Value as AstValue};
+use gluesql_core::{
+    AlterTable, AlterTableError, MutResult, Result, Row, RowIter, Schema, Store, StoreMut, Value,
+};
 
 #[derive(Clone, Debug)]
 pub struct DataKey {
@@ -45,7 +48,7 @@ impl StoreMut<DataKey> for MemoryStorage {
             id,
         };
 
-        Ok((self, key))
+        Ok((storage, key))
     }
 
     async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
