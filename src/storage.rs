@@ -132,12 +132,11 @@ impl StoreMut<DataKey> for MemoryStorage {
 
 #[async_trait(?Send)]
 impl Store<DataKey> for MemoryStorage {
-    async fn fetch_schema(&self, table_name: &str) -> Result<Schema> {
+    async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
         let schema = self
             .schema_map
             .get(table_name)
-            .ok_or(StoreError::SchemaNotFound)?
-            .clone();
+            .cloned();
 
         Ok(schema)
     }
