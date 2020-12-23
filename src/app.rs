@@ -271,7 +271,7 @@ impl App {
         })
     }
 
-    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
+    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql_core::Payload>>{
         self.db.borrow_mut().execute(query.as_str())
     }
 
@@ -360,7 +360,7 @@ impl App {
         Ok(())
     }
 
-    pub fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql::Payload>> {
+    pub fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql_core::Payload>> {
         self.db.borrow_mut().execute(sql)
     }
 }

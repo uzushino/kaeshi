@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use gluesql::Payload;
+use gluesql_core::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
@@ -24,7 +24,7 @@ impl Glue {
         }
     }
 
-    pub fn create_table(&mut self, table_name: Option<String>, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
+    pub async fn create_table(&mut self, table_name: Option<String>, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
         self.table_name = table_name;
 
         self.columns = columns
@@ -38,14 +38,14 @@ impl Glue {
             .collect::<Vec<_>>()
             .join(",");
 
-        self.execute(format!("CREATE TABLE {} ({}, created_at TEXT);", self.table_name(), s).as_str())
+        self.execute(format!("CREATE TABLE {} ({}, created_at TEXT);", self.table_name(), s).as_str()).await
     }
    
     fn table_name(&self) -> String {
         self.table_name.as_ref().unwrap_or(&"main".to_string()).to_string()
     }
 
-    pub fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
+    pub async fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
 
         let c = self.columns
@@ -64,19 +64,19 @@ impl Glue {
             )
         };
 
-        self.execute(sql.as_str())
+        self.execute(sql.as_str()).await
     }
 
-    pub fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
+    pub async fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
         log::debug!("sql=> {}", sql);
 
-        let query = gluesql::parse(sql)?;
+        let query = gluesql_core::parse(sql)?;
         let q = query.get(0);
 
         if let Some(q) = q {
             let storage = self.storage.take().unwrap();
             
-            if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q) {
+            if let Ok((s, payload)) =  gluesql_core::execute(storage.clone(), &q).await {
                 self.storage = Some(s);
                 return Ok(Some(payload));
             } else {
@@ -95,9 +95,9 @@ mod test {
     fn it_select() {
         let mut glue = Glue::new();
 
-        let query = glue.execute("SELECT * FROM main;");
+        let query = glue.execute("SELECT * FROM main;").await;
         match query {
-            Ok(Some(Payload::Select { aliases: _, rows: v})) => {
+            Ok(Some(Payload::Select { rows: v, ..})) => {
                 println!("{:?}", v);
             },
             n => { println!("{:?}", n) }
