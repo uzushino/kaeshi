@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use sql_builder::esc;
 
 use super::storage::MemoryStorage;
+use futures_await_test::async_test;
 
 #[derive(Clone)]
 pub struct Glue {
@@ -91,8 +92,8 @@ impl Glue {
 mod test {
     use super::*;
 
-    #[test]
-    fn it_select() {
+    #[async_test]
+    async fn it_select() {
         let mut glue = Glue::new();
 
         let query = glue.execute("SELECT * FROM main;").await;

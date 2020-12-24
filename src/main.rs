@@ -79,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
         let records: Vec<std::collections::BTreeMap<String, String>> = serde_json::from_str(content.as_str())?;
 
         for record in records {
-            app.db.borrow_mut().insert(&record)?;
+            app.db.borrow_mut().insert(&record).await?;
         }
     }
 
@@ -89,13 +89,13 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let query = opt.query.unwrap_or("SELECT * FROM main".to_string());
-    let result = app.execute(query.as_str())?;
+    let result = app.execute(query.as_str()).await?;
 
     match result {
-        Some(gluesql::Payload::Select { labels: _, aliases: _, rows: row}) => {
-            let f = |r: &gluesql::data::Value| { 
+        Some(gluesql_core::Payload::Select { labels: _, rows: row}) => {
+            let f = |r: &gluesql_core::data::Value| { 
                 match r {
-                    gluesql::data::Value::Str(s) => s.clone(),
+                    gluesql_core::data::Value::Str(s) => s.clone(),
                     _ => String::default()
                 }
             };

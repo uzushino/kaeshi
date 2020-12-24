@@ -271,8 +271,8 @@ impl App {
         })
     }
 
-    pub fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql_core::Payload>>{
-        self.db.borrow_mut().execute(query.as_str())
+    pub async fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql_core::Payload>>{
+        self.db.borrow_mut().execute(query.as_str()).await
     }
 
     pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {
@@ -322,10 +322,10 @@ impl App {
                 .collect::<HashSet<String>>() 
         });
 
-        self.db.borrow_mut().create_table(None, titles.iter().collect())?;
+        self.db.borrow_mut().create_table(None, titles.iter().collect()).await?;
 
         for row in rows.iter() {
-            self.db.borrow_mut().insert(row)?;
+            self.db.borrow_mut().insert(row).await?;
         }
 
         Ok(())
@@ -360,7 +360,7 @@ impl App {
         Ok(())
     }
 
-    pub fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql_core::Payload>> {
-        self.db.borrow_mut().execute(sql)
+    pub async fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql_core::Payload>> {
+        self.db.borrow_mut().execute(sql).await
     }
 }

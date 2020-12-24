@@ -28,6 +28,7 @@ async-trait = "*"
 im = "15.0.0"
 
 regex = "1"
+futures-await-test = "*"
 
 [dependencies.gluesql_core]
 version = "0.3.1"
