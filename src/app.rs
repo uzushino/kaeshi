@@ -37,7 +37,7 @@ pub struct TokenExpr {
     // End
     end: Option<String>,
 
-    vars: BTreeMap<String, VarExpr>
+    vars: Option<BTreeMap<String, VarExpr>>,
 }
 
 pub type Token = TokenExpr;
@@ -52,7 +52,7 @@ impl TokenExpr {
             count: None,
             begin: None,
             end: None,
-            vars: BTreeMap::new()
+            vars: None,
         }
     }
 
