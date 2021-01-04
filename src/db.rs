@@ -53,9 +53,11 @@ impl Glue {
             .iter()
             .map(|c| {
                 let a = row.get(c).map(|c| c.to_string()).unwrap_or(String::default());
-                format!(r#"{}"#, esc(a.as_str()).to_string())
+                format!(r#""{}""#, esc(a.as_str()).to_string())
             })
             .collect::<Vec<_>>();
+
+        log::debug!("c: {:?}", c);
 
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 

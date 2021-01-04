@@ -19,6 +19,7 @@ use super::db;
 use std::panic::AssertUnwindSafe;
 use std::io::{ BufRead };
 use std::collections::{ HashSet };
+
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
    Regex(String),
@@ -289,6 +290,8 @@ impl App {
 
     pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) -> anyhow::Result<()> {
         let first = templates.first().unwrap();
+        debug!("first: {:?}", first);
+
         let rest = &templates[1..];
         let syn = parser::Syntax::default();
         let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
@@ -324,6 +327,7 @@ impl App {
 
         self.db.borrow_mut().create_table(None, titles.iter().collect()).await?;
 
+            debug!("rows: {:?}", rows);
         for row in rows.iter() {
             self.db.borrow_mut().insert(row).await?;
         }

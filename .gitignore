@@ -3,5 +3,4 @@
 **/*.rs.bk
 
 *.yml
-sample.log
-test.log
+*.log
