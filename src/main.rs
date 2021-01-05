@@ -100,12 +100,12 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let records= row
+            let records = row
                 .iter()
                 .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
                 .collect::<Vec<_>>();
             
-            table::printstd_noheader(std::io::stdout(), &records)?;
+            table::printstd(std::io::stdout(), &records)?;
 
             if let Some(dump) = opt.dump {
                 std::fs::write(dump, serde_json::to_string(&records)?)?;
