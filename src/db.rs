@@ -3,6 +3,7 @@ use gluesql_core::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
+use format_sql_query::*;
 
 use super::storage::MemoryStorage;
 use futures_await_test::async_test;
@@ -51,10 +52,7 @@ impl Glue {
 
         let c = self.columns
             .iter()
-            .map(|c| {
-                let a = row.get(c).map(|c| c.to_string()).unwrap_or(String::default());
-                format!(r#""{}""#, esc(a.as_str()).to_string())
-            })
+            .map(|c| row.get(c).map(|c| QuotedData(c.as_str()).to_string()).unwrap_or_default())
             .collect::<Vec<_>>();
 
         log::debug!("c: {:?}", c);
