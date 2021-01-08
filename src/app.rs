@@ -262,7 +262,7 @@ pub struct App {
 
 impl App {
     pub async fn new_with_config(tx: mpsc::UnboundedSender<InputToken>, config: AppConfig) -> anyhow::Result<App> {
-        let mut db= db::Glue::new();
+        let db= db::Glue::new();
         
         Ok(App {
             tx,
@@ -345,7 +345,6 @@ impl App {
                 Ok(n) => {
                     let line = String::from_utf8_lossy(&buf).to_string();
                     debug!("input line: {}", line);
-
                     if n == 0 {
                         debug!("eof");
                         self.send_byte(b'\0')?;

@@ -69,8 +69,6 @@ impl Glue {
     }
 
     pub async fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
-        log::debug!("sql=> {}", sql);
-
         let query = gluesql_core::parse(sql)?;
         let q = query.get(0);
 
