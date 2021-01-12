@@ -93,11 +93,12 @@ mod test {
     #[async_test]
     async fn it_select() {
         let mut glue = Glue::new();
-
+        glue.create_table(Some("main".to_string()), vec![&"id".to_string()]).await;
         let query = glue.execute("SELECT * FROM main;").await;
+
         match query {
             Ok(Some(Payload::Select { rows: v, ..})) => {
-                println!("{:?}", v);
+                assert_eq!(Vec::default() as Vec<gluesql_core::Row>, v);
             },
             n => { println!("{:?}", n) }
         }
