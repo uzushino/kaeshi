@@ -92,20 +92,22 @@ async fn main() -> anyhow::Result<()> {
     let result = app.execute(query.as_str()).await?;
 
     match result {
-        Some(gluesql_core::Payload::Select { labels: _, rows: row}) => {
+        Some(gluesql_core::Payload::Select { labels: l, rows: row}) => {
             let f = |r: &gluesql_core::data::Value| { 
                 match r {
-                    gluesql_core::data::Value::Str(s) => s.clone(),
+                    gluesql_core::data::Value::Str(s) => (*s).clone(),
                     _ => String::default()
                 }
             };
 
-            let records = row
+            let records: Vec<BTreeMap<String, String>> = row
                 .iter()
-                .map(|r| r.0.iter().map(f).collect::<Vec<_>>())
+                .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<String, String>>())
                 .collect::<Vec<_>>();
-            
-            table::printstd_noheader(std::io::stdout(), &records)?;
+           
+            debug!("records: {:?}", row);
+
+            table::printstd(std::io::stdout(), &records)?;
 
             if let Some(dump) = opt.dump {
                 std::fs::write(dump, serde_json::to_string(&records)?)?;

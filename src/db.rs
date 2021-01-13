@@ -97,7 +97,8 @@ mod test {
         let query = glue.execute("SELECT * FROM main;").await;
 
         match query {
-            Ok(Some(Payload::Select { rows: v, ..})) => {
+            Ok(Some(Payload::Select { labels: l, rows: v, ..})) => {
+                assert_eq!(vec!["id", "created_at"], l);
                 assert_eq!(Vec::default() as Vec<gluesql_core::Row>, v);
             },
             n => { println!("{:?}", n) }
