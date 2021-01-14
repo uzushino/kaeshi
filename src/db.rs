@@ -3,10 +3,49 @@ use gluesql_core::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
-use format_sql_query::*;
+// use format_sql_query::*;
+use std::fmt::{self, Display};
+use itertools::Itertools;
 
 use super::storage::MemoryStorage;
 use futures_await_test::async_test;
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct QuotedData<'i>(pub &'i str);
+
+impl<'i> From<&'i str> for QuotedData<'i> {
+    fn from(value: &'i str) -> QuotedData<'i> {
+        QuotedData(value)
+    }
+}
+
+impl<'i> QuotedData<'i> {
+    pub fn as_str(&self) -> &'i str {
+        self.0
+    }
+}
+
+impl fmt::Display for QuotedData<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        log::debug!("aaa");
+
+        if self.0.contains("'") || self.0.contains("\\") {
+            return Err(fmt::Error);
+        }
+
+        if self.0.contains(" ") || self.0.contains("\"") {
+            f.write_str("")?;
+            for part in self.0.split("'").intersperse("\'\'") {
+                f.write_str(part)?;
+            }
+            f.write_str("")?;
+        } else {
+            f.write_str(self.0)?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Clone)]
 pub struct Glue {
@@ -52,7 +91,9 @@ impl Glue {
 
         let c = self.columns
             .iter()
-            .map(|c| row.get(c).map(|c| QuotedData(c.as_str()).to_string()).unwrap_or_default())
+            .map(|c| {
+                row.get(c).map(|c| QuotedData(c.as_str()).to_string()).unwrap_or_default()
+            })
             .collect::<Vec<_>>();
 
         log::debug!("c: {:?}", c);

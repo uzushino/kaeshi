@@ -998,6 +998,7 @@ dependencies = [
  "futures-await-test",
  "gluesql",
  "im",
+ "itertools 0.8.2",
  "log",
  "nom",
  "prettytable-rs",
