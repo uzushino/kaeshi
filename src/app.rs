@@ -107,7 +107,7 @@ impl TokenExpr {
                     results.append(&mut result);
 
                     if self.count.is_some() {
-                        self.parse_count(rx, syn);
+                        self.parse_count(rx, syn).await;
                     } else if self.many.is_some() {
                         loop {
                             match rx.recv().await {
@@ -295,6 +295,8 @@ impl App {
         let rest = &templates[1..];
         let syn = parser::Syntax::default();
         let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
+        
+        debug!("{:?}", rest);
 
         'main: loop {
             let (is_break, mut row) = first.evaluate(rx, &syn).await;
