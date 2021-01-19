@@ -92,16 +92,14 @@ impl Glue {
         let c = self.columns
             .iter()
             .map(|c| {
-                row.get(c).map(|c| QuotedData(c.as_str()).to_string()).unwrap_or_default()
+                row.get(c).map(|c| c.as_str().to_string()).unwrap_or_default()
             })
             .collect::<Vec<_>>();
-
-        log::debug!("c: {:?}", c);
 
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 
                 self.table_name().as_str(), 
-                c.join(","), 
+                c.iter().map(|c| format!(r#""{}""#, c)).join(","), 
                 esc(local.to_rfc3339().as_str())
             )
         };

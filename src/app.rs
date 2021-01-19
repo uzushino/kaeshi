@@ -97,12 +97,9 @@ impl TokenExpr {
 
     pub async fn evaluate(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
         let mut results = Vec::default();
-        debug!("evaluate");
 
         match rx.recv().await {
             Some(InputToken::Channel(text)) => {
-                debug!("Text +> {:?}, tag => {:?}", text, &self.tag);
-
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
 
@@ -289,33 +286,18 @@ impl App {
     }
 
     pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) -> anyhow::Result<()> {
-        let first = templates.first().unwrap();
-        debug!("first: {:?}", first);
-
-        let rest = &templates[1..];
         let syn = parser::Syntax::default();
         let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
-        
-        debug!("{:?}", rest);
 
         'main: loop {
-            let (is_break, mut row) = first.evaluate(rx, &syn).await;
-            rows.append(&mut row);
-
-            if !rest.is_empty() {
-                for template in rest {
-                    let (is_break, mut row) = template.evaluate(rx, &syn).await;
-                    rows.append(&mut row);
-                    
-                    if is_break {
-                        break 'main;
-                    }
+            for template in templates.iter() {
+                let (is_break, mut row) = template.evaluate(rx, &syn).await;
+                rows.append(&mut row);
+                
+                if is_break {
+                    break 'main;
                 }
             }
-        
-            if is_break {
-                break;
-            } 
         }
 
         let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
