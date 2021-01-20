@@ -295,7 +295,7 @@ impl App {
                 rows.append(&mut row);
                 
                 if is_break {
-                    break 'main;
+                    break
                 }
             }
         }
