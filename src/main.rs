@@ -105,8 +105,6 @@ async fn main() -> anyhow::Result<()> {
                 .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<String, String>>())
                 .collect::<Vec<_>>();
            
-            debug!("records: {:?}", row);
-
             table::printstd(std::io::stdout(), &records)?;
 
             if let Some(dump) = opt.dump {

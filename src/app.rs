@@ -311,7 +311,6 @@ impl App {
 
         self.db.borrow_mut().create_table(None, titles.iter().collect()).await?;
 
-            debug!("rows: {:?}", rows);
         for row in rows.iter() {
             self.db.borrow_mut().insert(row).await?;
         }

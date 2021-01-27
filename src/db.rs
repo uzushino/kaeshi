@@ -75,7 +75,7 @@ impl Glue {
 
         let s = self.columns
             .iter()
-            .map(|s| format!(r#""{}" TEXT"#, s))
+            .map(|s| format!(r#""{}" TEXT"#, s.trim()))
             .collect::<Vec<_>>()
             .join(",");
 
