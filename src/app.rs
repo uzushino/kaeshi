@@ -327,9 +327,7 @@ impl App {
             match stdin.lock().read_until(b'\n', &mut buf) {
                 Ok(n) => {
                     let line = String::from_utf8_lossy(&buf).to_string();
-                    debug!("input line: {}", line);
                     if n == 0 {
-                        debug!("eof");
                         self.send_byte(b'\0')?;
                         break;
                     }
