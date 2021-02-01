@@ -92,7 +92,7 @@ impl Glue {
         let c = self.columns
             .iter()
             .map(|c| {
-                row.get(c).map(|c| c.as_str().to_string()).unwrap_or_default()
+                    row.get(c).map(|c| c.as_str().replace("\"", "").to_string()).unwrap_or_default()
             })
             .collect::<Vec<_>>();
 
