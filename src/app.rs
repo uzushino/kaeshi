@@ -7,8 +7,6 @@ use nom::{
     bytes::streaming::take_until,
     bytes::complete::tag,
 };
-use std::io::{self, BufWriter};
-use std::thread::{self, JoinHandle};
 use log::{ debug, error };
 // use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 use tokio::sync::mpsc;

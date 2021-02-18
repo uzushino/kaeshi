@@ -28,8 +28,6 @@ impl<'i> QuotedData<'i> {
 
 impl fmt::Display for QuotedData<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        log::debug!("aaa");
-
         if self.0.contains("'") || self.0.contains("\\") {
             return Err(fmt::Error);
         }
