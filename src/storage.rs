@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use im::{vector, HashMap, Vector};
 
-use gluesql_core::parser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Value as AstValue};
+use gluesql_core::{data, parser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Value as AstValue}};
 use gluesql_core::{
     AlterTable, AlterTableError, MutResult, Result, Row, RowIter, Schema, Store, StoreMut, Value,
 };
@@ -34,23 +34,6 @@ impl MemoryStorage {
 
 #[async_trait(?Send)]
 impl StoreMut<DataKey> for MemoryStorage {
-    async fn generate_id(self, table_name: &str) -> MutResult<Self, DataKey> {
-        let id = self.id + 1;
-
-        let storage = Self {
-            schema_map: self.schema_map,
-            data_map: self.data_map,
-            id,
-        };
-
-        let key = DataKey {
-            table_name: table_name.to_string(),
-            id,
-        };
-
-        Ok((storage, key))
-    }
-
     async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
         let table_name = schema.table_name.to_string();
         let mut s= HashMap::default();
@@ -85,47 +68,47 @@ impl StoreMut<DataKey> for MemoryStorage {
         Ok((storage, ()))
     }
 
-    async fn insert_data(self, key: &DataKey, row: Row) -> MutResult<Self, ()> {
-        let DataKey { table_name, id } = key;
-        let (id, _row)= (*id, row.clone());
-
+    async fn insert_data(self, table_name: &str, rows: Vec<Row>) -> MutResult<Self, ()> {
         let Self {
             schema_map,
             mut data_map,
             id: self_id,
         } = self;
 
-        let new_rows= match data_map.get_mut(table_name) {
-            Some(rows) => {
-                let rows= match rows.iter().position(|(item_id, _)| *item_id == id) {
-                    Some(index) => {
-                        rows[index] = (id, _row);
-                        rows
-                    },
-                    None => {
-                        rows.push((id, _row));
-                        rows
-                    }
-                };
+        for row in rows.iter() {
+            let new_rows= match data_map.get_mut(table_name) {
+                Some(rows) => {
+                    let rows= match rows.iter().position(|(item_id, _)| *item_id == self_id) {
+                        Some(index) => {
+                            rows[index] = (self_id, row.clone());
+                            rows
+                        },
+                        None => {
+                            rows.push((self_id, row.clone()));
+                            rows
+                        }
+                    };
 
-                rows.clone()
-            }
-            _ => vec![(id, _row)]
-        };
+                    rows.clone()
+                }
+                _ => vec![(self_id, row.clone())]
+            };
 
-        let mut data_map = HashMap::new();
-        data_map.insert(table_name.clone(), new_rows);
+            data_map.insert(table_name.to_string(), new_rows);
+        }
 
-        let storage = Self {
+        Ok((Self {
             schema_map,
-            data_map: data_map.clone(),
+            data_map: data_map,
             id: self_id,
-        };
-
-        Ok((storage, ()))
+        }, ()))
     }
 
-    async fn delete_data(self, _key: &DataKey) -> MutResult<Self, ()> {
+    async fn delete_data(self, _key: Vec<DataKey>) -> MutResult<Self, ()> {
+        Ok((self, ()))
+    }
+
+    async fn update_data(self, rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }
