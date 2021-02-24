@@ -97,7 +97,7 @@ impl Glue {
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 
                 self.table_name().as_str(), 
-                c.iter().map(|c| format!(r#""{}""#, c)).join(","), 
+                c.iter().map(|c| format!(r#"'{}'"#, c)).join(","), 
                 esc(local.to_rfc3339().as_str())
             )
         };
