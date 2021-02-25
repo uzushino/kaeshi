@@ -97,8 +97,8 @@ impl Glue {
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 
                 self.table_name().as_str(), 
-                c.iter().map(|c| format!(r#"'{}'"#, c)).join(","), 
-                esc(local.to_rfc3339().as_str())
+                c.iter().map(|c| format!(r#""{}""#, c)).join(","), 
+                local.to_rfc3339().as_str()
             )
         };
 
@@ -110,12 +110,15 @@ impl Glue {
         let q = query.get(0);
 
         if let Some(q) = q {
+            log::debug!("q => {}", sql);
             let storage = self.storage.take().unwrap();
             
             if let Ok((s, payload)) =  gluesql_core::execute(storage.clone(), &q).await {
                 self.storage = Some(s);
+                log::debug!("execute success");
                 return Ok(Some(payload));
             } else {
+                log::debug!("execute error");
                 self.storage = Some(storage);
             }
         }

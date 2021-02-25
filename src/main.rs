@@ -17,12 +17,6 @@ struct Opt {
     pub tags: Vec<String>,
 
     #[structopt(short, long)]
-    pub manies: Vec<String>,
-
-    #[structopt(short, long)]
-    pub filters: Vec<String>,
-
-    #[structopt(short, long)]
     pub output: Option<String>,
     
     #[structopt(short, long)]
@@ -48,21 +42,10 @@ async fn main() -> anyhow::Result<()> {
         serde_yaml::from_str(&contents)?
     } else {
         let mut config = app::AppConfig::default();
-
+        
         let mut tokens = opt.tags
             .iter()
             .map(|tag| app::TokenExpr::new_with_tag(tag))
-            .collect::<Vec<_>>();
-
-        config.templates.append(&mut tokens);
-
-        let mut tokens = opt.manies
-            .iter()
-            .map(|tag| {
-                let mut tag = app::TokenExpr::new_with_tag(tag);
-                tag.many = Some(true);
-                tag
-            })
             .collect::<Vec<_>>();
 
         config.templates.append(&mut tokens);
