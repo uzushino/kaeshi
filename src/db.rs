@@ -63,7 +63,7 @@ impl Glue {
         }
     }
 
-    pub async fn create_table(&mut self, table_name: Option<String>, columns: Vec<&String>) -> anyhow::Result<Option<Payload>> {
+    pub async fn create_table(&mut self, table_name: Option<String>, columns: Vec<String>) -> anyhow::Result<Option<Payload>> {
         self.table_name = table_name;
 
         self.columns = columns
@@ -133,7 +133,9 @@ mod test {
     #[async_test]
     async fn it_select() {
         let mut glue = Glue::new();
-        glue.create_table(Some("main".to_string()), vec![&"id".to_string()]).await;
+
+        glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
+
         let query = glue.execute("SELECT * FROM main;").await;
 
         match query {

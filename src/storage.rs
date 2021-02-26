@@ -78,7 +78,7 @@ impl StoreMut<DataKey> for MemoryStorage {
         for row in rows.iter() {
             let new_rows= match data_map.get_mut(table_name) {
                 Some(rows) => {
-                    let rows= match rows.iter().position(|(item_id, _)| *item_id == self_id) {
+                    let rows= match rows.into_iter().position(|(item_id, _)| *item_id == self_id) {
                         Some(index) => {
                             rows[index] = (self_id, row.clone());
                             rows
@@ -108,7 +108,7 @@ impl StoreMut<DataKey> for MemoryStorage {
         Ok((self, ()))
     }
 
-    async fn update_data(self, rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
+    async fn update_data(self, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }
@@ -140,27 +140,25 @@ impl Store<DataKey> for MemoryStorage {
             None => vec![],
         };
 
-        let items = items.into_iter().map(Ok);
-
-        Ok(Box::new(items))
+        Ok(Box::new(items.into_iter().map(Ok)))
     }
 }
 
 #[async_trait(?Send)]
 impl AlterTable for MemoryStorage {
-    async fn rename_schema(self, table_name: &str, new_table_name: &str) -> MutResult<Self, ()> {
+    async fn rename_schema(self, _table_name: &str, _new_table_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn rename_column(self, table_name: &str, old_column_name: &str, new_column_name: &str) -> MutResult<Self, ()> {
+    async fn rename_column(self, _table_name: &str, _old_column_name: &str, _new_column_name: &str) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn add_column(self, table_name: &str, column_def: &ColumnDef) -> MutResult<Self, ()> {
+    async fn add_column(self, _table_name: &str, _column_def: &ColumnDef) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn drop_column(self, table_name: &str, column_name: &str, if_exists: bool) -> MutResult<Self, ()> {
+    async fn drop_column(self, _table_name: &str, _column_name: &str, _if_exists: bool) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }

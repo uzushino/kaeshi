@@ -1,4 +1,3 @@
-use log::{ debug, error };
 use structopt::StructOpt;
 use tokio::sync::mpsc;
 use std::collections::BTreeMap;
@@ -20,9 +19,6 @@ struct Opt {
     pub output: Option<String>,
     
     #[structopt(short, long)]
-    pub source: Option<String>,
-    
-    #[structopt(short, long)]
     pub query: Option<String>,
 
     #[structopt(short, long)]
@@ -42,7 +38,6 @@ async fn main() -> anyhow::Result<()> {
         serde_yaml::from_str(&contents)?
     } else {
         let mut config = app::AppConfig::default();
-        
         let mut tokens = opt.tags
             .iter()
             .map(|tag| app::TokenExpr::new_with_tag(tag))

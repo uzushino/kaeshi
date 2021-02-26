@@ -298,17 +298,16 @@ impl App {
             }
         }
 
-        let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
+        let titles = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
             let ks: HashSet<String> =
                 row.keys().cloned().collect();
-
             acc.union(&ks)
                 .cloned()
                 .collect::<HashSet<String>>() 
-        });
+        }).into_iter().collect::<Vec<_>>();
 
-        self.db.borrow_mut().create_table(None, titles.iter().collect()).await?;
-
+        self.db.borrow_mut().create_table(None, titles).await?;
+        
         for row in rows.iter() {
             self.db.borrow_mut().insert(row).await?;
         }
