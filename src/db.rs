@@ -20,31 +20,6 @@ impl<'i> From<&'i str> for QuotedData<'i> {
     }
 }
 
-impl<'i> QuotedData<'i> {
-    pub fn as_str(&self) -> &'i str {
-        self.0
-    }
-}
-
-impl fmt::Display for QuotedData<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.0.contains("'") || self.0.contains("\\") {
-            return Err(fmt::Error);
-        }
-
-        if self.0.contains(" ") || self.0.contains("\"") {
-            f.write_str("")?;
-            for part in self.0.split("'").intersperse("\'\'") {
-                f.write_str(part)?;
-            }
-            f.write_str("")?;
-        } else {
-            f.write_str(self.0)?;
-        }
-        Ok(())
-    }
-}
-
 #[derive(Clone)]
 pub struct Glue {
     table_name: Option<String>,
@@ -73,7 +48,7 @@ impl Glue {
 
         let s = self.columns
             .iter()
-            .map(|s| format!(r#""{}" TEXT"#, s.trim()))
+            .map(|s| format!(r#"{} TEXT"#, s.trim()))
             .collect::<Vec<_>>()
             .join(",");
 
@@ -95,9 +70,9 @@ impl Glue {
             .collect::<Vec<_>>();
 
         let sql = { 
-            format!(r#"INSERT INTO {} VALUES ({}, "{}")"#, 
+            format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
                 self.table_name().as_str(), 
-                c.iter().map(|c| format!(r#""{}""#, c)).join(","), 
+                c.iter().map(|c| format!(r#"'{}'"#, c)).join(","), 
                 local.to_rfc3339().as_str()
             )
         };

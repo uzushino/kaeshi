@@ -430,8 +430,7 @@ dependencies = [
 [[package]]
 name = "gluesql"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f11b78bf1dfd2246a5ec19ced2f7a787de9ca3debc587e40f0de70b6e93fe216"
+source = "git+https://github.com/gluesql/gluesql.git?branch=main#ca757c5cfeb3a76b74dfc36a7b974377aac662d5"
 dependencies = [
  "async-recursion",
  "async-trait",
