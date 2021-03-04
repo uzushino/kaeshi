@@ -59,6 +59,10 @@ impl Glue {
         self.table_name.as_ref().unwrap_or(&"main".to_string()).to_string()
     }
 
+    fn sql_value(s: &String) -> String {
+        esc(s)
+    }
+
     pub async fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
         let local: DateTime<Local> = Local::now();
 
@@ -72,7 +76,7 @@ impl Glue {
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
                 self.table_name().as_str(), 
-                c.iter().map(|c| format!(r#"'{}'"#, c)).join(","), 
+                c.iter().map(Self::sql_value).join(","), 
                 local.to_rfc3339().as_str()
             )
         };
@@ -102,6 +106,7 @@ impl Glue {
     }
 }
 
+#[allow(unused_imports)]
 mod test {
     use super::*;
 
@@ -109,7 +114,7 @@ mod test {
     async fn it_select() {
         let mut glue = Glue::new();
 
-        glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
+        let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
 
         let query = glue.execute("SELECT * FROM main;").await;
 

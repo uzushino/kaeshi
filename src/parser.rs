@@ -463,34 +463,4 @@ fn tag_expr_start<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]>
 fn tag_expr_end<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
     tag(s.expr_end.as_str())(i)
 }
-
-#[allow(unused_imports)]
-#[cfg(test)]
-mod tests {
-    use crate::parser::Syntax;
-
-    fn check_ws_split(s: &str, res: &(&str, &str, &str)) {
-        let node = super::split_ws_parts(s.as_bytes());
-        match node {
-            super::Node::Lit(lws, s, rws) => {
-                assert_eq!(lws, res.0);
-                assert_eq!(s, res.1);
-                assert_eq!(rws, res.2);
-            }
-            _ => {
-                panic!("fail");
-            }
-        }
-    }
-
-    #[test]
-    fn test_ws_splitter() {
-        check_ws_split("", &("", "", ""));
-        check_ws_split("a", &("", "a", ""));
-        check_ws_split("\ta", &("\t", "a", ""));
-        check_ws_split("b\n", &("", "b", "\n"));
-        check_ws_split(" \t\r\n", &(" \t\r\n", "", ""));
-    }
-}
-
 type ParserError<'a, T> = Result<(&'a [u8], T), nom::Err<(&'a [u8], nom::error::ErrorKind)>>;
