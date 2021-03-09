@@ -89,15 +89,12 @@ impl Glue {
         let q = query.get(0);
 
         if let Some(q) = q {
-            log::debug!("q => {}", sql);
             let storage = self.storage.take().unwrap();
             
             if let Ok((s, payload)) =  gluesql_core::execute(storage.clone(), &q).await {
                 self.storage = Some(s);
-                log::debug!("execute success");
                 return Ok(Some(payload));
             } else {
-                log::debug!("execute error");
                 self.storage = Some(storage);
             }
         }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs::read};
 use std::option::Option;
 use serde::Deserialize;
 use nom::{
@@ -97,25 +97,32 @@ impl TokenExpr {
         let mut results = Vec::default();
 
         match rx.recv().await {
-            Some(InputToken::Channel(text)) => {
+            Some(InputToken::Channel(mut text)) => {
+                let read_count = self.tag.split('\n').count();
+                for _ in 1..read_count {
+                    match rx.recv().await {
+                        Some(InputToken::Channel(line)) => {
+                            text += &line;
+                        },
+                        Some(InputToken::Byte(b'\0')) => break,
+                        _ => break
+                    }
+                }
+
                 if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
                     results.append(&mut result);
 
-                    if self.count.is_some() {
-                        self.parse_count(rx, syn).await;
-                    } else if self.many.is_some() {
-                        loop {
-                            match rx.recv().await {
-                                Some(InputToken::Channel(text)) => {
-                                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
-                                        results.append(&mut row);
-                                    } else {
-                                        break
-                                    }
-                                },
-                                Some(InputToken::Byte(b'\0')) => return (true, results),
-                                _ => break
-                            }
+                    loop {
+                        match rx.recv().await {
+                            Some(InputToken::Channel(text)) => {
+                                if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                                    results.append(&mut row);
+                                } else {
+                                    break
+                                }
+                            },
+                            Some(InputToken::Byte(b'\0')) => return (true, results),
+                            _ => break
                         }
                     }
                 }
