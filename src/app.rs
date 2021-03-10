@@ -27,15 +27,6 @@ pub enum VarExpr {
 #[derive(Debug, Deserialize, Clone)]
 pub struct TokenExpr {
     pub tag: String,
-    // Many
-    pub many: Option<bool>,
-    // Count
-    count: Option<usize>,
-    // Begin
-    begin: Option<String>,
-    // End
-    end: Option<String>,
-
     vars: Option<BTreeMap<String, VarExpr>>,
 }
 
@@ -47,50 +38,8 @@ impl TokenExpr {
     pub fn new_with_tag(tag: &String) -> TokenExpr {
         TokenExpr {
             tag: tag.clone(), 
-            many: None, 
-            count: None,
-            begin: None,
-            end: None,
             vars: None,
         }
-    }
-
-    pub async fn parse_count(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
-        let mut results = Vec::default();
-
-        for _ in 1..self.count.unwrap_or(1) {
-            match rx.recv().await {
-                Some(InputToken::Channel(text)) => {
-                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
-                        results.append(&mut row);
-                    }
-                },
-                Some(InputToken::Byte(b'\0')) => return (true, results),
-                _ => break
-            }
-        }
-
-        (false, results)
-    }
-
-    pub async fn parse_many(&self, mut rx: mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
-        let mut results = Vec::default();
-
-        loop {
-            match rx.recv().await {
-                Some(InputToken::Channel(text)) => {
-                    if let Ok((_, mut row)) = self.parse(&text[..], syn) {
-                        results.append(&mut row);
-                    } else {
-                        break
-                    }
-                },
-                Some(InputToken::Byte(b'\0')) => return (true, results),
-                _ => break
-            }
-        }
-
-        (false, results)
     }
 
     pub async fn evaluate(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, syn: &parser::Syntax) -> (bool, DB) {
@@ -99,6 +48,7 @@ impl TokenExpr {
         match rx.recv().await {
             Some(InputToken::Channel(mut text)) => {
                 let read_count = self.tag.split('\n').count();
+                log::debug!("recv count => {}", read_count);
                 for _ in 1..read_count {
                     match rx.recv().await {
                         Some(InputToken::Channel(line)) => {
