@@ -33,9 +33,7 @@ itertools = "*"
 
 
 [dependencies.gluesql_core]
-version = "0.4.1"
+version = "0.4.2"
 package = "gluesql"
 default-features = false
-git = 'https://github.com/gluesql/gluesql.git'
-branch = "main"
 features = ["alter-table"]

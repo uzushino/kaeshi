@@ -429,8 +429,9 @@ dependencies = [
 
 [[package]]
 name = "gluesql"
-version = "0.4.1"
-source = "git+https://github.com/gluesql/gluesql.git?branch=main#ca757c5cfeb3a76b74dfc36a7b974377aac662d5"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8f9fe0e103140bbec5d34435b263db5ee6a495eabd035daad17bfd47c1284af"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -442,7 +443,7 @@ dependencies = [
  "itertools 0.9.0",
  "pin-project",
  "serde",
- "sqlparser 0.6.1",
+ "sqlparser 0.8.0",
  "thiserror",
 ]
 
@@ -900,21 +901,21 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53fa7478852b3ea28f0d21a42b2d7dade24ba4aa72e22bf66982e4b587a7f608"
-dependencies = [
- "log",
- "serde",
-]
-
-[[package]]
-name = "sqlparser"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a3da41f3ddf62cbf92635ace62dd037fad9a91c6871c514fbd404e2059f27d"
 dependencies = [
  "log",
+]
+
+[[package]]
+name = "sqlparser"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b929a9577d01ee7cddb820696ed536868d81557d3c14363a7514d71add1d058"
+dependencies = [
+ "log",
+ "serde",
 ]
 
 [[package]]
