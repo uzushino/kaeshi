@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs::read};
+use std::{collections::BTreeMap};
 use std::option::Option;
 use serde::Deserialize;
 use nom::{
@@ -7,14 +7,12 @@ use nom::{
     bytes::streaming::take_until,
     bytes::complete::tag,
 };
-use log::{ debug, error };
+use log::error;
 // use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 use tokio::sync::mpsc;
 
 use super::parser;
-use super::table;
 use super::db;
-use std::panic::AssertUnwindSafe;
 use std::io::{ BufRead };
 use std::collections::{ HashSet };
 

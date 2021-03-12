@@ -12,7 +12,6 @@ path = "src/lib.rs"
 [dependencies]
 nom = "5"
 prettytable-rs = "*"
-ctrlc = "*"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 serde_json = "1.0"

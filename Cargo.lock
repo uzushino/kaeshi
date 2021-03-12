@@ -138,12 +138,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
-name = "cc"
-version = "1.0.66"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c0496836a84f8d0495758516b8621a622beb77c0fed418570e50764093ced48"
-
-[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -220,16 +214,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "ctrlc"
-version = "3.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b57a92e9749e10f25a171adcebfafe72991d45e7ec2dcb853e8f83d9dafaeb08"
-dependencies = [
- "nix",
- "winapi",
 ]
 
 [[package]]
@@ -443,7 +427,7 @@ dependencies = [
  "itertools 0.9.0",
  "pin-project",
  "serde",
- "sqlparser 0.8.0",
+ "sqlparser",
  "thiserror",
 ]
 
@@ -598,18 +582,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "nix"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83450fe6a6142ddd95fb064b746083fc4ef1705fe81f64a64e1d4b39f54a1055"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if 0.1.10",
- "libc",
-]
 
 [[package]]
 name = "nom"
@@ -901,15 +873,6 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3a3da41f3ddf62cbf92635ace62dd037fad9a91c6871c514fbd404e2059f27d"
-dependencies = [
- "log",
-]
-
-[[package]]
-name = "sqlparser"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b929a9577d01ee7cddb820696ed536868d81557d3c14363a7514d71add1d058"
@@ -992,7 +955,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "ctrlc",
  "env_logger",
  "format-sql-query",
  "futures-await-test",
@@ -1007,7 +969,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sql-builder",
- "sqlparser 0.7.0",
+ "sqlparser",
  "structopt",
  "tokio",
 ]

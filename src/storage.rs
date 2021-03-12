@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 
-use im::{vector, HashMap, Vector};
+use im::HashMap;
 
-use gluesql_core::{data, parser::ast::{ColumnDef, ColumnOption, ColumnOptionDef, Value as AstValue}};
 use gluesql_core::{
-    AlterTable, AlterTableError, MutResult, Result, Row, RowIter, Schema, Store, StoreMut, Value,
+    parser::ast::ColumnDef
+};
+use gluesql_core::{
+    AlterTable, MutResult, Result, Row, RowIter, Schema, Store, StoreMut,
 };
 
 #[derive(Clone, Debug)]

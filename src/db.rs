@@ -3,8 +3,6 @@ use gluesql_core::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
-// use format_sql_query::*;
-use std::fmt::{self, Display};
 use itertools::Itertools;
 
 use super::storage::MemoryStorage;

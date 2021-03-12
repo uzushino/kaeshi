@@ -41,7 +41,6 @@ pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyho
 
 pub fn printstd_noheader<W>(mut writer: W, rows: &Vec<Vec<String>>) -> anyhow::Result<usize> where W: Write  { 
     let mut table = Table::new();
-
     for row in rows {
         table.add_row(Row::new(row.iter().map(|c| Cell::new(c)).collect()));
     }
