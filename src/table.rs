@@ -1,10 +1,10 @@
-use std::collections::{ HashSet, BTreeMap };
+use std::{collections::{ HashSet, BTreeMap }};
 use prettytable::{ Table, Cell, Row };
 use std::io::Write;
 
-pub fn printjson(rows: &Vec<BTreeMap<String, String>>) {
+pub fn printjson<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<(), std::io::Error> where W: Write {
     let j = serde_json::to_string(&rows).unwrap();
-    println!("{}", j);
+    writer.write_all(j.as_bytes())
 }
 
 pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<usize> 

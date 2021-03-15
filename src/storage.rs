@@ -1,13 +1,11 @@
 use async_trait::async_trait;
-
-use im::HashMap;
-
 use gluesql_core::{
     parser::ast::ColumnDef
 };
 use gluesql_core::{
     AlterTable, MutResult, Result, Row, RowIter, Schema, Store, StoreMut,
 };
+use im::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct DataKey {
