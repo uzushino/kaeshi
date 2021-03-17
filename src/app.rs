@@ -47,6 +47,7 @@ impl TokenExpr {
             Some(InputToken::Channel(mut text)) => {
                 let read_count = self.tag.split('\n').count();
                 log::debug!("recv count => {}", read_count);
+
                 for _ in 1..read_count {
                     match rx.recv().await {
                         Some(InputToken::Channel(line)) => {
@@ -179,7 +180,15 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     }
                 },
+                parser::Node::Expr(_, parser::Expr::Filter("skip", vars)) => {
+                    let next = tokens.get(idx + 1);
+                    let result = token_expr(input, next);
+                    if let Ok((rest, _)) = result {
+                        input = rest;
+                    } 
+                },
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
+                    log::debug!("{:?}", key);
                     let next = tokens.get(idx + 1);
                     let result = token_expr(input, next);
 
