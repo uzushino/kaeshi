@@ -46,8 +46,6 @@ impl TokenExpr {
         match rx.recv().await {
             Some(InputToken::Channel(mut text)) => {
                 let read_count = self.tag.split('\n').count();
-                log::debug!("recv count => {}", read_count);
-
                 for _ in 1..read_count {
                     match rx.recv().await {
                         Some(InputToken::Channel(line)) => {
@@ -58,13 +56,13 @@ impl TokenExpr {
                     }
                 }
 
-                if let Ok((_, mut result)) = self.parse(text.as_str(), syn) {
+                if let Ok((_, mut result)) = self.parse(text.as_str(), false, syn) {
                     results.append(&mut result);
 
                     loop {
                         match rx.recv().await {
                             Some(InputToken::Channel(text)) => {
-                                if let Ok((_, mut row)) = self.parse(&text[..], syn) {
+                                if let Ok((_, mut row)) = self.parse(&text[..], false, syn) {
                                     results.append(&mut row);
                                 } else {
                                     break
@@ -83,9 +81,13 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn parse<'a>(&self, text: &'a str, syn: &parser::Syntax) -> IResult<&'a str, DB> {
-        let (_, tokens) = parser::parse_template(self.tag.as_bytes(), &syn).unwrap();
-
+    pub fn parse<'a>(&self, text: &'a str, without_block: bool, syn: &parser::Syntax) -> IResult<&'a str, DB> {
+        let (_, tokens) = if without_block {
+            parser::parse_template(self.tag.as_bytes(), &syn).unwrap()
+        } else {
+            parser::parse_template_without_block(self.tag.as_bytes(), &syn).unwrap()
+        };
+        
         make_combinator()(tokens, text)
             .map(|(rest, value)| {
                 if value.is_empty() {
@@ -180,7 +182,7 @@ pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&
                         }
                     }
                 },
-                parser::Node::Expr(_, parser::Expr::Filter("skip", vars)) => {
+                parser::Node::Expr(_, parser::Expr::Filter("skip", _)) => {
                     let next = tokens.get(idx + 1);
                     let result = token_expr(input, next);
                     if let Ok((rest, _)) = result {

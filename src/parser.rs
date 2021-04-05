@@ -39,6 +39,7 @@ pub enum Expr<'a> {
     Var(&'a str),
     Filter(&'a str, Vec<Expr<'a>>),
     Unary(&'a str, Box<Expr<'a>>),
+    Range(&'a str, Option<Box<Expr<'a>>>, Option<Box<Expr<'a>>>),
     BinOp(&'a str, Box<Expr<'a>>, Box<Expr<'a>>),
 }
 
@@ -346,8 +347,24 @@ expr_prec_layer!(expr_compare, expr_bor, "==", "!=", ">=", ">", "<=", "<");
 expr_prec_layer!(expr_and, expr_compare, "&&");
 expr_prec_layer!(expr_or, expr_and, "||");
 
+fn range_right(i: &[u8]) -> IResult<&[u8], Expr> {
+    let (i, (_, incl, right)) = tuple((ws(tag("..")), opt(ws(tag("="))), opt(expr_or)))(i)?;
+    Ok((
+        i,
+        Expr::Range(
+            if incl.is_some() { "..=" } else { ".." },
+            None,
+            right.map(Box::new),
+        ),
+    ))
+}
+
 fn expr_any(i: &[u8]) -> IResult<&[u8], Expr> {
-    Ok(expr_or(i)?)
+    let compound = map(tuple((expr_or, range_right)), |(left, rest)| match rest {
+        Expr::Range(op, _, right) => Expr::Range(op, Some(Box::new(left)), right),
+        _ => unreachable!(),
+    });
+    alt((range_right, compound, expr_or))(i)
 }
 
 fn expr_node<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
@@ -440,6 +457,7 @@ fn block_node<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
         |i| tag_block_end(i, s),
     ));
     let (i, (_, contents, _)) = p(i)?;
+
     Ok((i, contents))
 }
 
@@ -447,7 +465,14 @@ pub fn parse_template<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<N
     many0(alt((
         complete(|i| take_content(i, s)),
         complete(|i| expr_node(i, s)),
-        //complete(|i| block_node(i, s)),
+        complete(|i| block_node(i, s)),
+    )))(i)
+}
+
+pub fn parse_template_without_block<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<Node<'a>>> {
+    many0(alt((
+        complete(|i| take_content(i, s)),
+        complete(|i| expr_node(i, s)),
     )))(i)
 }
 
