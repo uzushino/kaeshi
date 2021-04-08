@@ -10,6 +10,7 @@ use nom::{
 use log::error;
 // use crossbeam_channel::{ self, unbounded, Sender, Receiver };
 use tokio::sync::mpsc;
+use async_recursion::async_recursion;
 
 use super::parser;
 use super::db;
@@ -45,24 +46,13 @@ impl TokenExpr {
 
         match rx.recv().await {
             Some(InputToken::Channel(mut text)) => {
-                let read_count = self.tag.split('\n').count();
-                for _ in 1..read_count {
-                    match rx.recv().await {
-                        Some(InputToken::Channel(line)) => {
-                            text += &line;
-                        },
-                        Some(InputToken::Byte(b'\0')) => break,
-                        _ => break
-                    }
-                }
-
-                if let Ok((_, mut result)) = self.parse(text.as_str(), false, syn) {
+                if let Ok((_, mut result)) = self.parse(rx, text.as_str(), false, syn).await {
                     results.append(&mut result);
-
+                    
                     loop {
                         match rx.recv().await {
                             Some(InputToken::Channel(text)) => {
-                                if let Ok((_, mut row)) = self.parse(&text[..], false, syn) {
+                                if let Ok((_, mut row)) = self.parse(rx, &text[..], false, syn).await {
                                     results.append(&mut row);
                                 } else {
                                     break
@@ -81,21 +71,100 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub fn parse<'a>(&self, text: &'a str, without_block: bool, syn: &parser::Syntax) -> IResult<&'a str, DB> {
+    pub async fn parse<'a>(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, text: &'a str, without_block: bool, syn: &parser::Syntax) -> IResult<String, DB> {
         let (_, tokens) = if without_block {
             parser::parse_template(self.tag.as_bytes(), &syn).unwrap()
         } else {
-            parser::parse_template_without_block(self.tag.as_bytes(), &syn).unwrap()
+            parser::parse_template(self.tag.as_bytes(), &syn).unwrap()
+        };
+       
+        log::debug!("first: {}", text);
+        log::debug!("tokens: {:?}", tokens);
+
+        Self::parse_token(rx, &text.to_string(), &tokens).await
+    }
+
+    fn merge<'a>(first_context: &BTreeMap<String, String>, second_context: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+        let mut new_context = BTreeMap::new();
+
+        for (key, value) in first_context.iter() {
+            new_context.insert(key.clone(), value.clone());
+        }
+        for (key, value) in second_context.iter() {
+            new_context.insert(key.clone(), value.clone());
+        }
+
+        new_context
+    }
+
+    #[async_recursion]
+    async fn parse_token<'a>(rx: &mut mpsc::UnboundedReceiver<InputToken>, input: &String, tokens: &Vec<parser::Node<'a>>) -> IResult<String, DB>{
+        let mut input = input.to_string();
+        let mut h: BTreeMap<String, String> = BTreeMap::default();
+
+        for (idx, token) in tokens.iter().enumerate() {
+            if input.is_empty() {
+                input = match rx.recv().await {
+                    Some(InputToken::Channel(line)) => line,
+                    _ => String::default() 
+                };
+            }
+
+            log::debug!("{} {:?}", input, token);
+
+            match token {
+                parser::Node::Lit(a, b, c) => {
+                    let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input.as_str());
+                    match a {
+                        Ok((rest, _b)) => input = rest.to_string(),
+                        _ => return Err(default_error(input.as_str()).map(|(s, k)| (s.to_string(), k)))
+                    }
+                },
+                parser::Node::Expr(_, parser::Expr::Var(key)) => {
+                    let next = tokens.get(idx + 1);
+                    let result = token_expr(input.as_str(), next);
+
+                    if let Ok((rest, hit)) = result {
+                        input = rest.to_string();
+                        h.insert(key.to_string(), hit);
+                    } else {
+                        input = "".to_string();
+                    }
+                },
+                parser::Node::Loop(_, _, parser::Expr::Range("..", Some(s), Some(e)), nodes, _) => {
+                    let s: u32 = match s.as_ref() {
+                        &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
+                        _ => 0
+                    };
+                    let e:u32 = match e.as_ref() {
+                        &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
+                        _ => 0
+                    };
+                    
+                    for n in s..e {
+                        if let Ok((_, h2)) = Self::parse_token(rx, &input, nodes).await {
+                            log::debug!("in loop: {:?}", h2);
+                        }
+                        
+                        input = match rx.recv().await {
+                            Some(InputToken::Channel(line)) => line,
+                            _ => String::default() 
+                        };
+                    }
+                }
+
+                _ => {},
+            }
+
+            log::debug!("rest {}", input);
         };
         
-        make_combinator()(tokens, text)
-            .map(|(rest, value)| {
-                if value.is_empty() {
-                    (rest, Vec::default())
-                } else {
-                    (rest, vec![value])
-                }
-            })
+        if h.is_empty() {
+            IResult::Ok((String::default(), Vec::default()))
+        } else {
+            IResult::Ok((String::default(), vec![h]))
+        }
+
     }
 }
 
@@ -149,64 +218,6 @@ fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a s
     };
 
     result.map(|(a, b)| (a, b.to_string()))
-}
-
-pub fn make_combinator<'a>() -> impl Fn(Vec<parser::Node>, &'a str) -> IResult<&'a str, BTreeMap<String, String>> {
-    move |tokens: Vec<parser::Node>, mut input: &'a str| {
-        let mut h: BTreeMap<String, String> = BTreeMap::default();
-
-        for (idx, token) in tokens.iter().enumerate() {
-            if input.is_empty() {
-                break
-            }
-            
-            match token {
-                parser::Node::Lit(a, b, c) => {
-                    let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input);
-
-                    match a {
-                        Ok((rest, _b)) => input = rest,
-                        _ => return Err(default_error(input))
-                    }
-                },
-                parser::Node::Expr(_, parser::Expr::Filter("trim", vars)) => {
-                    if let Some(parser::Expr::Var(t)) = vars.first() {
-                        let next = tokens.get(idx + 1);
-                        let result = token_expr(input, next);
-
-                        if let Ok((rest, hit)) = result {
-                            input = rest;
-                            h.insert(t.to_string(), hit.trim().to_string());
-                        } else {
-                            input = "";
-                        }
-                    }
-                },
-                parser::Node::Expr(_, parser::Expr::Filter("skip", _)) => {
-                    let next = tokens.get(idx + 1);
-                    let result = token_expr(input, next);
-                    if let Ok((rest, _)) = result {
-                        input = rest;
-                    } 
-                },
-                parser::Node::Expr(_, parser::Expr::Var(key)) => {
-                    log::debug!("{:?}", key);
-                    let next = tokens.get(idx + 1);
-                    let result = token_expr(input, next);
-
-                    if let Ok((rest, hit)) = result {
-                        input = rest;
-                        h.insert(key.to_string(), hit);
-                    } else {
-                        input = "";
-                    }
-                },
-                _ => {},
-            }   
-        };
-
-        IResult::Ok((input, h))
-    }
 }
 
 #[allow(dead_code)]
