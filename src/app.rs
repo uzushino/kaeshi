@@ -110,8 +110,6 @@ impl TokenExpr {
                 };
             }
 
-            log::debug!("{} {:?}", input, token);
-
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input.as_str());
@@ -143,7 +141,11 @@ impl TokenExpr {
                     
                     for n in s..e {
                         if let Ok((_, h2)) = Self::parse_token(rx, &input, nodes).await {
-                            log::debug!("in loop: {:?}", h2);
+                            for m in h2.iter() {
+                                for (k, v) in m.iter() {
+                                    h.insert(format!("i{}_{}", n, k), v.to_owned());
+                                }
+                            }
                         }
                         
                         input = match rx.recv().await {

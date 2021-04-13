@@ -58,7 +58,7 @@ impl Glue {
     }
 
     fn sql_value(s: &String) -> String {
-        esc(s)
+        format!("'{}'", esc(s))
     }
 
     pub async fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
