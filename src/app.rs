@@ -97,6 +97,13 @@ impl TokenExpr {
         new_context
     }
 
+    async fn read_line(rx: &mut mpsc::UnboundedReceiver<InputToken>) -> String {
+        match rx.recv().await {
+            Some(InputToken::Channel(line)) => line,
+            _ => String::default() 
+        }
+    }
+
     #[async_recursion]
     async fn parse_token<'a>(rx: &mut mpsc::UnboundedReceiver<InputToken>, input: &String, tokens: &Vec<parser::Node<'a>>) -> IResult<String, DB>{
         let mut input = input.to_string();
@@ -104,10 +111,7 @@ impl TokenExpr {
 
         for (idx, token) in tokens.iter().enumerate() {
             if input.is_empty() {
-                input = match rx.recv().await {
-                    Some(InputToken::Channel(line)) => line,
-                    _ => String::default() 
-                };
+                input = Self::read_line(rx).await;
             }
 
             match token {
@@ -132,10 +136,12 @@ impl TokenExpr {
                 parser::Node::Loop(_, _, parser::Expr::Range("..", Some(s), Some(e)), nodes, _) => {
                     let s: u32 = match s.as_ref() {
                         &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
+                        &parser::Expr::Var(n) => n.parse().unwrap_or_default(),
                         _ => 0
                     };
                     let e:u32 = match e.as_ref() {
                         &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
+                        &parser::Expr::Var(n) => n.parse().unwrap_or_default(),
                         _ => 0
                     };
                     
@@ -148,17 +154,12 @@ impl TokenExpr {
                             }
                         }
                         
-                        input = match rx.recv().await {
-                            Some(InputToken::Channel(line)) => line,
-                            _ => String::default() 
-                        };
+                        input = Self::read_line(rx).await
                     }
                 }
 
                 _ => {},
             }
-
-            log::debug!("rest {}", input);
         };
         
         if h.is_empty() {
