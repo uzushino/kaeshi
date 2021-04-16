@@ -133,6 +133,10 @@ impl TokenExpr {
                         input = "".to_string();
                     }
                 },
+                parser::Node::Cond(exprs, _) => {
+                    for (_ws, e, ns) in exprs.iter() {
+                    }
+                },
                 parser::Node::Loop(_, _, parser::Expr::Range("..", Some(s), Some(e)), nodes, _) => {
                     let s: u32 = match s.as_ref() {
                         &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
