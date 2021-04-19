@@ -134,7 +134,30 @@ impl TokenExpr {
                     }
                 },
                 parser::Node::Cond(exprs, _) => {
-                    for (_ws, e, ns) in exprs.iter() {
+                    for (_ws, expr, ns) in exprs.iter() {
+                        match expr {
+                            Some(parser::Expr::BinOp("==", var, lit)) => {
+                                let v = match var.as_ref() {
+                                    parser::Expr::Var(n) => h.get(*n),
+                                    _ => None,
+                                };
+                                let b = match lit.as_ref() {
+                                    parser::Expr::NumLit(num) => num.to_string() == v.unwrap().to_string(),
+                                    _ => false
+                                };
+
+                                if b {
+                                    if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
+                                        for m in h2.iter() {
+                                            for (k, v) in m.iter() {
+                                                h.insert(k.to_string(), v.to_owned());
+                                            }
+                                        }
+                                    } 
+                                }
+                            },
+                            _ => {}
+                        }
                     }
                 },
                 parser::Node::Loop(_, _, parser::Expr::Range("..", Some(s), Some(e)), nodes, _) => {
