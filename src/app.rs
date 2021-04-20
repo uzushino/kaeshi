@@ -136,16 +136,8 @@ impl TokenExpr {
                 parser::Node::Cond(exprs, _) => {
                     for (_ws, expr, ns) in exprs.iter() {
                         match expr {
-                            Some(parser::Expr::BinOp("==", var, lit)) => {
-                                let v = match var.as_ref() {
-                                    parser::Expr::Var(n) => h.get(*n),
-                                    _ => None,
-                                };
-                                let b = match lit.as_ref() {
-                                    parser::Expr::NumLit(num) => num.to_string() == v.unwrap().to_string(),
-                                    _ => false
-                                };
-
+                            Some(parser::Expr::BinOp("==", left, right)) => {
+                                let b = Self::bin_op(&mut h, "==", left, right);
                                 if b {
                                     if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
                                         for m in h2.iter() {
@@ -195,6 +187,29 @@ impl TokenExpr {
             IResult::Ok((String::default(), vec![h]))
         }
 
+    }
+
+    fn bin_op(h: &mut BTreeMap<String, String>, op: &str, left: &parser::Expr, right: &parser::Expr) -> bool {
+        match op {
+            "==" =>Self::get_variable::<String>(&h, left) == Self::get_variable::<String>(&h, right),
+            "!=" =>Self::get_variable::<String>(&h, left) != Self::get_variable::<String>(&h, right),
+            ">" => Self::get_variable::<f64>(&h, left) > Self::get_variable::<f64>(&h, right),
+            "<" => Self::get_variable::<f64>(&h, left) < Self::get_variable::<f64>(&h, right),
+            ">=" => Self::get_variable::<f64>(&h, left) >= Self::get_variable::<f64>(&h, right),
+            "<=" => Self::get_variable::<f64>(&h, left) <= Self::get_variable::<f64>(&h, right),
+            _ => false
+        }
+    }
+    
+    fn get_variable<F>(h: &BTreeMap<String, String>, expr: &parser::Expr) -> Option<F> 
+        where F: std::str::FromStr + PartialOrd, F::Err: std::fmt::Debug {
+        let a = match expr {
+            parser::Expr::Var(n) => h.get(*n).map(String::to_string),
+            parser::Expr::NumLit(num) => Some(num.to_string()),
+            _ => None
+        };
+
+        a.map(|v| v.parse::<F>().unwrap())
     }
 }
 
