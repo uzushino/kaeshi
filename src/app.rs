@@ -153,16 +153,8 @@ impl TokenExpr {
                     }
                 },
                 parser::Node::Loop(_, _, parser::Expr::Range("..", Some(s), Some(e)), nodes, _) => {
-                    let s: u32 = match s.as_ref() {
-                        &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
-                        &parser::Expr::Var(n) => n.parse().unwrap_or_default(),
-                        _ => 0
-                    };
-                    let e:u32 = match e.as_ref() {
-                        &parser::Expr::NumLit(n) => n.parse().unwrap_or_default(),
-                        &parser::Expr::Var(n) => n.parse().unwrap_or_default(),
-                        _ => 0
-                    };
+                    let s: u32 = Self::get_variable(&mut h, s).unwrap_or_default();
+                    let e: u32 = Self::get_variable(&mut h, e).unwrap_or_default();
                     
                     for n in s..e {
                         if let Ok((_, h2)) = Self::parse_token(rx, &input, nodes).await {
@@ -206,6 +198,7 @@ impl TokenExpr {
         let a = match expr {
             parser::Expr::Var(n) => h.get(*n).map(String::to_string),
             parser::Expr::NumLit(num) => Some(num.to_string()),
+            parser::Expr::StrLit(s) => Some(s.to_string()),
             _ => None
         };
 
