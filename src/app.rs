@@ -130,15 +130,14 @@ impl TokenExpr {
                         input = rest.to_string();
                         h.insert(key.to_string(), hit);
                     } else {
-                        input = "".to_string();
+                        input = String::default();
                     }
                 },
                 parser::Node::Cond(exprs, _) => {
                     for (_ws, expr, ns) in exprs.iter() {
                         match expr {
-                            Some(parser::Expr::BinOp("==", left, right)) => {
-                                let b = Self::bin_op(&mut h, "==", left, right);
-                                if b {
+                            Some(parser::Expr::BinOp(op, left, right)) => {
+                                if Self::bin_op(&mut h, op, left, right) {
                                     if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
                                         for m in h2.iter() {
                                             for (k, v) in m.iter() {

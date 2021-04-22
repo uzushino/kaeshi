@@ -14,9 +14,6 @@ struct Opt {
 
     #[structopt(short, long)]
     pub tags: Vec<String>,
-
-    #[structopt(short, long)]
-    pub output: Option<String>,
     
     #[structopt(short, long)]
     pub query: Option<String>,
@@ -42,9 +39,7 @@ async fn main() -> anyhow::Result<()> {
             .iter()
             .map(|tag| app::TokenExpr::new_with_tag(tag))
             .collect::<Vec<_>>();
-
         config.templates.append(&mut tokens);
-
         config
     };
 
@@ -54,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
             
     if let Some(restore) = opt.restore {
         let content = std::fs::read_to_string(restore)?;
-        let records: Vec<std::collections::BTreeMap<String, String>> = serde_json::from_str(content.as_str())?;
+        let records: app::DB = serde_json::from_str(content.as_str())?;
 
         for record in records {
             app.db.borrow_mut().insert(&record).await?;
@@ -78,11 +73,10 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let records: Vec<BTreeMap<String, String>> = row
+            let records: app::DB = row
                 .iter()
                 .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<String, String>>())
                 .collect::<Vec<_>>();
-           
             table::printstd(std::io::stdout(), &records)?;
 
             if let Some(dump) = opt.dump {
