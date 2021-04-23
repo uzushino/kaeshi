@@ -147,6 +147,17 @@ impl TokenExpr {
                                     } 
                                 }
                             },
+                            Some(parser::Expr::BinOp(op, left, right)) => {
+                                if Self::bin_op(&mut h, op, left, right) {
+                                    if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
+                                        for m in h2.iter() {
+                                            for (k, v) in m.iter() {
+                                                h.insert(k.to_string(), v.to_owned());
+                                            }
+                                        }
+                                    } 
+                                }
+                            },
                             _ => {}
                         }
                     }

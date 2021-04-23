@@ -60,7 +60,6 @@ async fn main() -> anyhow::Result<()> {
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
     );
-
     let query = opt.query.unwrap_or("SELECT * FROM main".to_string());
     let result = app.execute(query.as_str()).await?;
 
