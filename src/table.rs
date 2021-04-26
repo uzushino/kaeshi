@@ -23,11 +23,7 @@ pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyho
 
     for row in rows {
         let record = titles.iter().fold(Vec::default(), |mut acc, title| {
-            let a = match row.get(title) {
-                Some(title) => title.as_ref(),
-                _ => "",
-            };
-            acc.push(Cell::new(a));
+            acc.push(Cell::new(row.get(title).map(|s| s.as_ref()).unwrap_or_default()));
             acc
         });
 

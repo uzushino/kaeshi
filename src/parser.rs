@@ -469,13 +469,6 @@ pub fn parse_template<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<N
     )))(i)
 }
 
-pub fn parse_template_without_block<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Vec<Node<'a>>> {
-    many0(alt((
-        complete(|i| take_content(i, s)),
-        complete(|i| expr_node(i, s)),
-    )))(i)
-}
-
 fn tag_block_start<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], &'a [u8]> {
     tag(s.block_start.as_str())(i)
 }
