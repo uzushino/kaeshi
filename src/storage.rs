@@ -3,9 +3,9 @@ use gluesql_core::{
     parser::ast::ColumnDef
 };
 use gluesql_core::{
-    AlterTable, MutResult, Result, Row, RowIter, Schema, Store, StoreMut,
+     MutResult, Result, Row, RowIter, Schema, Store, StoreMut,
 };
-use im::HashMap;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct DataKey {

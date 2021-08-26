@@ -3,7 +3,6 @@ use gluesql_core::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
-use itertools::Itertools;
 
 use super::storage::MemoryStorage;
 use futures_await_test::async_test;
