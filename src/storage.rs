@@ -1,11 +1,8 @@
 use async_trait::async_trait;
-use gluesql_core::{
-    parser::ast::ColumnDef
+use gluesql::{
+     MutResult, Result, Row, RowIter, Schema, Store, StoreMut, GStore, GStoreMut
 };
-use gluesql_core::{
-     MutResult, Result, Row, RowIter, Schema, Store, StoreMut,
-};
-use std::collections::HashMap;
+use im::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct DataKey {
@@ -31,6 +28,10 @@ impl MemoryStorage {
         })
     }
 }
+
+impl GStore<DataKey> for MemoryStorage {}
+
+impl GStoreMut<DataKey> for MemoryStorage {}
 
 #[async_trait(?Send)]
 impl StoreMut<DataKey> for MemoryStorage {
@@ -104,11 +105,11 @@ impl StoreMut<DataKey> for MemoryStorage {
         }, ()))
     }
 
-    async fn delete_data(self, _key: Vec<DataKey>) -> MutResult<Self, ()> {
+    async fn delete_data(self, table_name: &str, _key: Vec<DataKey>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn update_data(self, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
+    async fn update_data(self, table_name: &str, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }
@@ -141,24 +142,5 @@ impl Store<DataKey> for MemoryStorage {
         };
 
         Ok(Box::new(items.into_iter().map(Ok)))
-    }
-}
-
-#[async_trait(?Send)]
-impl AlterTable for MemoryStorage {
-    async fn rename_schema(self, _table_name: &str, _new_table_name: &str) -> MutResult<Self, ()> {
-        Ok((self, ()))
-    }
-
-    async fn rename_column(self, _table_name: &str, _old_column_name: &str, _new_column_name: &str) -> MutResult<Self, ()> {
-        Ok((self, ()))
-    }
-
-    async fn add_column(self, _table_name: &str, _column_def: &ColumnDef) -> MutResult<Self, ()> {
-        Ok((self, ()))
-    }
-
-    async fn drop_column(self, _table_name: &str, _column_name: &str, _if_exists: bool) -> MutResult<Self, ()> {
-        Ok((self, ()))
     }
 }

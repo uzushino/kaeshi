@@ -30,10 +30,7 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let opt = Opt::from_args();
 
-    let config: app::AppConfig = if let Some(file) = opt.file { 
-        let contents = std::fs::read_to_string(file)?;
-        serde_yaml::from_str(&contents)?
-    } else {
+    let config: app::AppConfig = {
         let mut config = app::AppConfig::default();
         let mut tokens = opt.tags
             .iter()
@@ -64,10 +61,10 @@ async fn main() -> anyhow::Result<()> {
     let result = app.execute(query.as_str()).await?;
 
     match result {
-        Some(gluesql_core::Payload::Select { labels: l, rows: row}) => {
-            let f = |r: &gluesql_core::data::Value| { 
+        Some(gluesql::Payload::Select { labels: l, rows: row}) => {
+            let f = |r: &gluesql::data::Value| { 
                 match r {
-                    gluesql_core::data::Value::Str(s) => (*s).clone(),
+                    gluesql::data::Value::Str(s) => (*s).clone(),
                     _ => String::default()
                 }
             };

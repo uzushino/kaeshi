@@ -28,8 +28,9 @@ futures-await-test = "*"
 tera = "*"
 futures = "*"
 async-recursion = "*"
+im = "15.0.0"
 
-[dependencies.gluesql_core]
+[dependencies.gluesql]
 version = "0.7"
 package = "gluesql"
 default-features = false

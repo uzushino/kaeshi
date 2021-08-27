@@ -1,12 +1,11 @@
 use anyhow::anyhow;
-use gluesql_core::Payload;
+use gluesql::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
 
 use super::storage::MemoryStorage;
 use futures_await_test::async_test;
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct QuotedData<'i>(pub &'i str);
@@ -73,7 +72,7 @@ impl Glue {
         let sql = { 
             format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
                 self.table_name().as_str(), 
-                c.iter().map(Self::sql_value).join(","), 
+                c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
                 local.to_rfc3339().as_str()
             )
         };
@@ -82,13 +81,13 @@ impl Glue {
     }
 
     pub async fn execute(&mut self, sql: &str) -> anyhow::Result<Option<Payload>> {
-        let query = gluesql_core::parse(sql)?;
+        let query = gluesql::parse(sql).unwrap();
         let q = query.get(0);
 
         if let Some(q) = q {
             let storage = self.storage.take().unwrap();
-            
-            if let Ok((s, payload)) =  gluesql_core::execute(storage.clone(), &q).await {
+            let q = gluesql::translate(q).unwrap();
+            if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q).await {
                 self.storage = Some(s);
                 return Ok(Some(payload));
             } else {
@@ -115,7 +114,7 @@ mod test {
         match query {
             Ok(Some(Payload::Select { labels: l, rows: v, ..})) => {
                 assert_eq!(vec!["id", "created_at"], l);
-                assert_eq!(Vec::default() as Vec<gluesql_core::Row>, v);
+                assert_eq!(Vec::default() as Vec<gluesql::Row>, v);
             },
             n => { println!("{:?}", n) }
         }

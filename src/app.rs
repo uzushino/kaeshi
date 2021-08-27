@@ -292,7 +292,7 @@ impl App {
         })
     }
 
-    pub async fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql_core::Payload>>{
+    pub async fn execute_query(&self, query: String) -> anyhow::Result<Option<gluesql::Payload>>{
         self.db.borrow_mut().execute(query.as_str()).await
     }
 
@@ -366,7 +366,7 @@ impl App {
         Ok(())
     }
 
-    pub async fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql_core::Payload>> {
+    pub async fn execute(&self, sql: &str) -> anyhow::Result<Option<gluesql::Payload>> {
         self.db.borrow_mut().execute(sql).await
     }
 }
