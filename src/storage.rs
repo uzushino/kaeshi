@@ -105,11 +105,11 @@ impl StoreMut<DataKey> for MemoryStorage {
         }, ()))
     }
 
-    async fn delete_data(self, table_name: &str, _key: Vec<DataKey>) -> MutResult<Self, ()> {
+    async fn delete_data(self, _table_name: &str, _key: Vec<DataKey>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn update_data(self, table_name: &str, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
+    async fn update_data(self, _table_name: &str, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }

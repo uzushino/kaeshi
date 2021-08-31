@@ -87,6 +87,7 @@ impl Glue {
         if let Some(q) = q {
             let storage = self.storage.take().unwrap();
             let q = gluesql::translate(q).unwrap();
+
             if let Ok((s, payload)) =  gluesql::execute(storage.clone(), &q).await {
                 self.storage = Some(s);
                 return Ok(Some(payload));
