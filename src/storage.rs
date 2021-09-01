@@ -1,7 +1,5 @@
 use async_trait::async_trait;
-use gluesql::{
-     MutResult, Result, Row, RowIter, Schema, Store, StoreMut, GStore, GStoreMut
-};
+use gluesql::{GStore, GStoreMut, MutResult, Result, Row, RowIter, Schema, Store, StoreMut, data};
 use im::HashMap;
 
 #[derive(Clone, Debug)]
@@ -13,7 +11,7 @@ pub struct DataKey {
 #[derive(Clone)]
 pub struct MemoryStorage {
     schema_map: HashMap<String, Schema>,
-    data_map: HashMap<String, Vec<(u64, Row)>>,
+    pub data_map: HashMap<String, Vec<(u64, Row)>>,
     id: u64,
 }
 
@@ -79,18 +77,23 @@ impl StoreMut<DataKey> for MemoryStorage {
         for row in rows.iter() {
             let new_rows= match data_map.get_mut(table_name) {
                 Some(rows) => {
-                    let rows= match rows.into_iter().position(|(item_id, _)| *item_id == self_id) {
-                        Some(index) => {
-                            rows[index] = (self_id, row.clone());
-                            rows
-                        },
-                        None => {
-                            rows.push((self_id, row.clone()));
-                            rows
-                        }
-                    };
-
-                    rows.clone()
+                    if self_id == 0 {
+                        let new_id = rows.len() + 1;
+                        rows.push((new_id as u64, row.clone()));
+                        rows.clone()
+                    } else {
+                        let rows= match rows.into_iter().position(|(item_id, _)| *item_id == self_id) {
+                            Some(index) => {
+                                rows[index] = (self_id, row.clone());
+                                rows
+                            },
+                            None => {
+                                rows.push((self_id, row.clone()));
+                                rows
+                            }
+                        };
+                        rows.clone()
+                    }
                 }
                 _ => vec![(self_id, row.clone())]
             };
@@ -100,7 +103,7 @@ impl StoreMut<DataKey> for MemoryStorage {
 
         Ok((Self {
             schema_map,
-            data_map: data_map,
+            data_map,
             id: self_id,
         }, ()))
     }
