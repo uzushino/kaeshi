@@ -7,15 +7,6 @@ use sql_builder::esc;
 use super::storage::MemoryStorage;
 use futures_await_test::async_test;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct QuotedData<'i>(pub &'i str);
-
-impl<'i> From<&'i str> for QuotedData<'i> {
-    fn from(value: &'i str) -> QuotedData<'i> {
-        QuotedData(value)
-    }
-}
-
 #[derive(Clone)]
 pub struct Glue {
     table_name: Option<String>,

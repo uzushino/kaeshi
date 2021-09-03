@@ -1,3 +1,5 @@
+use std::io::{ BufRead };
+use std::collections::{ HashSet };
 use std::{collections::BTreeMap};
 use std::option::Option;
 use serde::Deserialize;
@@ -14,8 +16,6 @@ use async_recursion::async_recursion;
 
 use super::parser;
 use super::db;
-use std::io::{ BufRead };
-use std::collections::{ HashSet };
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum VarExpr {
