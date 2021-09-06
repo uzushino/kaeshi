@@ -98,7 +98,6 @@ mod test {
     #[async_test]
     async fn it_select() {
         let mut glue = Glue::new();
-
         let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
         let query = glue.execute("SELECT * FROM main;").await;
 

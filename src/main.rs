@@ -17,12 +17,9 @@ struct Opt {
     
     #[structopt(short, long)]
     pub query: Option<String>,
-
+   
     #[structopt(short, long)]
-    pub dump: Option<String>,
-    
-    #[structopt(short, long)]
-    pub restore: Option<String>,
+    pub json: bool,
 }
 
 #[tokio::main]
@@ -43,16 +40,6 @@ async fn main() -> anyhow::Result<()> {
     let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
     let app = app::App::new_with_config(tx, config).await?;
-            
-    if let Some(restore) = opt.restore {
-        let content = std::fs::read_to_string(restore)?;
-        let records: app::DB = serde_json::from_str(content.as_str())?;
-
-        for record in records {
-            app.db.borrow_mut().insert(&record).await?;
-        }
-    }
-
     let _ret = tokio::join!(
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
@@ -74,10 +61,10 @@ async fn main() -> anyhow::Result<()> {
                 .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<String, String>>())
                 .collect::<Vec<_>>();
 
-            table::printstd(std::io::stdout(), &records)?;
-
-            if let Some(dump) = opt.dump {
-                std::fs::write(dump, serde_json::to_string(&records)?)?;
+            if opt.json {
+                table::printjson(std::io::stdout(), &records)?;
+            } else { 
+                table::printstd(std::io::stdout(), &records)?;
             }
         },
         _ => {}
