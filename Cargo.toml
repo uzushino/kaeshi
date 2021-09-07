@@ -1,5 +1,5 @@
 [package]
-name = "textdb"
+name = "kaeshi"
 version = "0.1.0"
 authors = ["uzushino <torattoria.mamiya@gmail.com>"]
 edition = "2018"

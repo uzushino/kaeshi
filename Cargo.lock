@@ -520,7 +520,7 @@ dependencies = [
  "pin-project",
  "rust_decimal",
  "serde",
- "sqlparser 0.8.0",
+ "sqlparser",
  "thiserror",
 ]
 
@@ -652,6 +652,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4bf49d50e2961077d9c99f4b7997d770a1114f087c3c2e0069b36c13fc2979d"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "kaeshi"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-recursion",
+ "async-trait",
+ "chrono",
+ "env_logger",
+ "futures",
+ "futures-await-test",
+ "gluesql",
+ "im",
+ "log",
+ "nom",
+ "prettytable-rs",
+ "regex",
+ "serde",
+ "serde_json",
+ "sql-builder",
+ "sqlparser",
+ "structopt",
+ "tera",
+ "tokio",
 ]
 
 [[package]]
@@ -1140,15 +1166,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sqlparser"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dbcb26aebf44a0993c3c95e41d13860131b6cbf52edb2c53230056baa4d733f"
-dependencies = [
- "log",
-]
-
-[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1235,32 +1252,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "textdb"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-recursion",
- "async-trait",
- "chrono",
- "env_logger",
- "futures",
- "futures-await-test",
- "gluesql",
- "im",
- "log",
- "nom",
- "prettytable-rs",
- "regex",
- "serde",
- "serde_json",
- "sql-builder",
- "sqlparser 0.10.0",
- "structopt",
- "tera",
- "tokio",
 ]
 
 [[package]]

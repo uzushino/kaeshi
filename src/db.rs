@@ -16,7 +16,7 @@ pub struct Glue {
 
 impl Glue {
     pub fn new() -> Self {
-        let storage = MemoryStorage::new().unwrap();
+        let storage = MemoryStorage::new();
         
         Glue {
             table_name: None,

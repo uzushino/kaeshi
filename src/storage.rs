@@ -16,14 +16,14 @@ pub struct MemoryStorage {
 }
 
 impl MemoryStorage {
-    pub fn new() -> Result<Self> {
+    pub fn new() -> Self {
         let schema_map = HashMap::new();
         
-        Ok(Self {
+        Self {
             schema_map,
             data_map: HashMap::default(),
             id: 0,
-        })
+        }
     }
 }
 
