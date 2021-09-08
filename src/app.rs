@@ -304,6 +304,7 @@ impl App {
         'main: loop {
             for template in templates.iter() {
                 let (is_break, mut row) = template.evaluate(rx, &syn).await;
+                dbg!(&row);
                 rows.append(&mut row);
                 
                 if is_break {
@@ -319,7 +320,7 @@ impl App {
                 .cloned()
                 .collect::<HashSet<String>>() 
         }).into_iter().collect::<Vec<_>>();
-
+        
         self.db.borrow_mut().create_table(None, titles).await?;
         
         for row in rows.iter() {
