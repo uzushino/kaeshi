@@ -39,11 +39,14 @@ async fn main() -> anyhow::Result<()> {
 
     let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
+
     let app = app::App::new_with_config(tx, config).await?;
+
     let _ret = tokio::join!(
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
     );
+
     let query = opt.query.unwrap_or("SELECT * FROM main".to_string());
     let result = app.execute(query.as_str()).await?;
 
@@ -58,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
             let records: app::DB = row
                 .iter()
-                .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<String, String>>())
+                .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<_, _>>())
                 .collect::<Vec<_>>();
 
             if opt.json {

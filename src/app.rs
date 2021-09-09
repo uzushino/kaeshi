@@ -90,6 +90,7 @@ impl TokenExpr {
         for (key, value) in first_context.iter() {
             new_context.insert(key.clone(), value.clone());
         }
+
         for (key, value) in second_context.iter() {
             new_context.insert(key.clone(), value.clone());
         }
