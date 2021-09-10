@@ -1,5 +1,6 @@
 use std::io::{ BufRead };
 use std::collections::{ HashSet };
+use std::iter::FromIterator;
 use std::{collections::BTreeMap};
 use std::option::Option;
 use serde::Deserialize;
@@ -237,18 +238,18 @@ fn default_error(input: &str) -> nom::Err<(&str, nom::error::ErrorKind)> {
 }
 
 fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a str, String> {
-   let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
-       let mut result: IResult<&str, &str> = Err(default_error(input));
-       
-       for (u, _ch) in input.chars().into_iter().enumerate() {
-           let s = &input[u..];
-           let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+    let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
+        let mut result: IResult<&str, &str> = Err(default_error(input));
+        let cv: Vec<char> = input.chars().collect();
+        for (u, _ch) in cv.iter().enumerate() {
+           let s= String::from_iter(&cv[u..]);
+           let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(&s);
 
            if let Ok(_) = t {
                result = Ok((&input[u..input.len()], &input[0..u]));
                break
            } 
-       }
+        }
 
        result
     } else {
@@ -305,7 +306,6 @@ impl App {
         'main: loop {
             for template in templates.iter() {
                 let (is_break, mut row) = template.evaluate(rx, &syn).await;
-                dbg!(&row);
                 rows.append(&mut row);
                 
                 if is_break {
@@ -317,6 +317,7 @@ impl App {
         let titles = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
             let ks: HashSet<String> =
                 row.keys().cloned().collect();
+
             acc.union(&ks)
                 .cloned()
                 .collect::<HashSet<String>>() 
