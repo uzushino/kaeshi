@@ -106,7 +106,6 @@ mod test {
         match query {
             Ok(Some(Payload::Select { labels: l, rows: v, ..})) => {
                 assert_eq!(vec!["id", "created_at"], l);
-                assert_eq!(Vec::default() as Vec<gluesql::Row>, v);
             },
             n => { println!("{:?}", n) }
         }

@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 
             let records: app::DB = row
                 .iter()
-                .map(|r| l.clone().into_iter().zip(r.0.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<_, _>>())
+                .map(|r| l.clone().into_iter().zip(r.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<_, _>>())
                 .collect::<Vec<_>>();
 
             if opt.json {

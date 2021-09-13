@@ -31,7 +31,7 @@ async-recursion = "*"
 im = "15.0.0"
 
 [dependencies.gluesql]
-version = "0.7"
+version = "0.8"
 package = "gluesql"
 default-features = false
 features = ["sorter"]

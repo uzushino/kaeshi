@@ -1,6 +1,5 @@
 use std::io::{ BufRead };
 use std::collections::{ HashSet };
-use std::iter::FromIterator;
 use std::{collections::BTreeMap};
 use std::option::Option;
 use serde::Deserialize;
@@ -238,20 +237,22 @@ fn default_error(input: &str) -> nom::Err<(&str, nom::error::ErrorKind)> {
 }
 
 fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a str, String> {
-    let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
+   let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
         let mut result: IResult<&str, &str> = Err(default_error(input));
-        let cv: Vec<char> = input.chars().collect();
-        for (u, _ch) in cv.iter().enumerate() {
-           let s= String::from_iter(&cv[u..]);
-           let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(&s);
+        let mut idx = 0usize; 
+        for ch in input.chars().into_iter() {
+            idx += ch.len_utf8();
 
-           if let Ok(_) = t {
-               result = Ok((&input[u..input.len()], &input[0..u]));
-               break
-           } 
+            let s = &input[idx..];
+            let t: IResult<&str, &str> = alt((tag("\n"), tag(&format!("{}{}{}", a, b, c)[..])))(s);
+
+            if let Ok(_) = t {
+                result = Ok((&input[idx..input.len()], &input[0..idx]));
+                break
+            } 
         }
 
-       result
+        result
     } else {
         take_until("\n")(input)
     };
