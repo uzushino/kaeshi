@@ -92,6 +92,7 @@ impl StoreMut<DataKey> for MemoryStorage {
                                 rows
                             }
                         };
+                        
                         rows.clone()
                     }
                 }
@@ -124,7 +125,6 @@ impl Store<DataKey> for MemoryStorage {
             .schema_map
             .get(table_name)
             .cloned();
-
         Ok(schema)
     }
 

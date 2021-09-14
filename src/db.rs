@@ -43,7 +43,7 @@ impl Glue {
     }
    
     fn table_name(&self) -> String {
-        self.table_name.as_ref().unwrap_or(&"main".to_string()).to_string()
+        self.table_name.as_ref().unwrap_or(&"kaeshi".to_string()).to_string()
     }
 
     fn sql_value(s: &String) -> String {
@@ -101,7 +101,7 @@ mod test {
     async fn it_select() {
         let mut glue = Glue::new();
         let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
-        let query = glue.execute("SELECT * FROM main;").await;
+        let query = glue.execute("SELECT * FROM kaeshi").await;
 
         match query {
             Ok(Some(Payload::Select { labels: l, rows: v, ..})) => {
