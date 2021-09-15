@@ -123,6 +123,17 @@ impl TokenExpr {
                         _ => return Err(default_error(input.as_str()).map(|(s, k)| (s.to_string(), k)))
                     }
                 },
+                parser::Node::Expr(_, parser::Expr::Filter("skip", _)) => {
+                    let next = tokens.get(idx + 1);
+                    let result = token_expr(input.as_str(), next);
+                    
+                    if let Ok((rest, _)) = result {
+                        input = rest.to_string();
+                    } else {
+                        input = String::default();
+                    }
+
+                },
                 parser::Node::Expr(_, parser::Expr::Var(key)) => {
                     let next = tokens.get(idx + 1);
                     let result = token_expr(input.as_str(), next);

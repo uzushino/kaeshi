@@ -92,7 +92,7 @@ impl StoreMut<DataKey> for MemoryStorage {
                                 rows
                             }
                         };
-                        
+
                         rows.clone()
                     }
                 }
