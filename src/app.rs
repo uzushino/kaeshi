@@ -45,14 +45,13 @@ impl TokenExpr {
         let mut results = Vec::default();
 
         match rx.recv().await {
-            Some(InputToken::Channel(mut text)) => {
-                if let Ok((_, mut result)) = self.parse(rx, text.as_str(), false, syn).await {
+            Some(InputToken::Channel(text)) => {
+                if let Ok((_, mut result)) = self.parse(rx, &text[..], syn).await {
                     results.append(&mut result);
-                    
                     loop {
                         match rx.recv().await {
                             Some(InputToken::Channel(text)) => {
-                                if let Ok((_, mut row)) = self.parse(rx, &text[..], false, syn).await {
+                                if let Ok((_, mut row)) = self.parse(rx, &text[..], syn).await {
                                     results.append(&mut row);
                                 } else {
                                     break
@@ -71,16 +70,9 @@ impl TokenExpr {
         (false, results)
     }
 
-    pub async fn parse<'a>(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, text: &'a str, without_block: bool, syn: &parser::Syntax) -> IResult<String, DB> {
-        let (_, tokens) = if without_block {
-            parser::parse_template(self.tag.as_bytes(), &syn).unwrap()
-        } else {
-            parser::parse_template(self.tag.as_bytes(), &syn).unwrap()
-        };
+    pub async fn parse<'a>(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, text: &'a str, syn: &parser::Syntax) -> IResult<String, DB> {
+        let (_, tokens) = parser::parse_template(self.tag.as_bytes(), &syn).unwrap();
        
-        log::debug!("first: {}", text);
-        log::debug!("tokens: {:?}", tokens);
-
         Self::parse_token(rx, &text.to_string(), &tokens).await
     }
 
@@ -151,6 +143,7 @@ impl TokenExpr {
                             Some(parser::Expr::BinOp(op, left, right)) => {
                                 if Self::bin_op(&mut h, op, left, right) {
                                     if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
+
                                         for m in h2.iter() {
                                             for (k, v) in m.iter() {
                                                 h.insert(k.to_string(), v.to_owned());
