@@ -74,7 +74,7 @@ impl StoreMut<DataKey> for MemoryStorage {
             id: self_id,
         } = self;
 
-        for row in rows.iter() {
+        for row in rows.into_iter() {
             let new_rows= match data_map.get_mut(table_name) {
                 Some(rows) => {
                     if self_id == 0 {
@@ -84,11 +84,11 @@ impl StoreMut<DataKey> for MemoryStorage {
                     } else {
                         let rows= match rows.into_iter().position(|(item_id, _)| *item_id == self_id) {
                             Some(index) => {
-                                rows[index] = (self_id, row.clone());
+                                rows[index] = (self_id, row);
                                 rows
                             },
                             None => {
-                                rows.push((self_id, row.clone()));
+                                rows.push((self_id, row));
                                 rows
                             }
                         };

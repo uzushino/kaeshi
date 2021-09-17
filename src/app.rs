@@ -48,6 +48,7 @@ impl TokenExpr {
             Some(InputToken::Channel(text)) => {
                 if let Ok((_, mut result)) = self.parse(rx, &text[..], syn).await {
                     results.append(&mut result);
+
                     loop {
                         match rx.recv().await {
                             Some(InputToken::Channel(text)) => {
@@ -244,6 +245,7 @@ fn token_expr<'a>(input: &'a str, token: Option<&parser::Node>) -> IResult<&'a s
    let result: IResult<&str, &str> = if let Some(parser::Node::Lit(a, b, c)) = token {
         let mut result: IResult<&str, &str> = Err(default_error(input));
         let mut idx = 0usize; 
+
         for ch in input.chars().into_iter() {
             idx += ch.len_utf8();
 
@@ -294,13 +296,11 @@ impl App {
 
     pub fn send_byte(&self, b: u8) -> anyhow::Result<()> {
         self.tx.send(InputToken::Byte(b))?;
-        
         Ok(())
     }
     
     pub fn send_string(&self, txt: String) -> anyhow::Result<()> {
         self.tx.send(InputToken::Channel(txt.clone()))?;
-        
         Ok(())
     }
 
