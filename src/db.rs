@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use gluesql::Payload;
+use gluesql::{Payload, tests::data_type::timestamp::timestamp};
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
@@ -10,6 +10,7 @@ use futures_await_test::async_test;
 #[derive(Clone)]
 pub struct Glue {
     table_name: Option<String>,
+    timestamp: Option<String>,
     columns: Vec<String>,
     storage: Option<MemoryStorage>
 }
@@ -20,13 +21,15 @@ impl Glue {
         
         Glue {
             table_name: None,
+            timestamp: None,
             columns: Vec::default(),
             storage: Some(storage)
         }
     }
 
-    pub async fn create_table(&mut self, table_name: Option<String>, columns: Vec<String>) -> anyhow::Result<Option<Payload>> {
+    pub async fn create_table(&mut self, table_name: Option<String>, columns: Vec<String>, timestamp: Option<String>) -> anyhow::Result<Option<Payload>> {
         self.table_name = table_name;
+        self.timestamp = timestamp;
 
         self.columns = columns
             .iter()
@@ -38,8 +41,16 @@ impl Glue {
             .map(|s| format!(r#"{} TEXT"#, s.trim()))
             .collect::<Vec<_>>()
             .join(",");
-
-        self.execute(format!("CREATE TABLE {} ({}, created_at TEXT);", self.table_name(), s).as_str()).await
+       
+        if let Some(timestamp) = &self.timestamp {
+            self.execute(
+                format!("CREATE TABLE {} ({}, {} timestamp);", self.table_name(), s, timestamp
+            ).as_str()).await
+        } else {
+            self.execute(
+                format!("CREATE TABLE {} ({});", self.table_name(), s).as_str()
+            ).await
+        }
     }
    
     fn table_name(&self) -> String {
@@ -60,13 +71,19 @@ impl Glue {
             })
             .collect::<Vec<_>>();
 
-        let sql = { 
-            format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
-                self.table_name().as_str(), 
-                c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
-                local.to_rfc3339().as_str()
-            )
-        };
+        let sql = 
+            if self.timestamp.is_none() {
+                format!(r#"INSERT INTO {} VALUES ({})"#, 
+                    self.table_name().as_str(), 
+                    c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
+                )
+            } else {
+                format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
+                    self.table_name().as_str(), 
+                    c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
+                    local.to_rfc3339().as_str()
+                )
+            };
 
         self.execute(sql.as_str()).await
     }
@@ -98,7 +115,7 @@ mod test {
     #[async_test]
     async fn it_select() {
         let mut glue = Glue::new();
-        let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()]).await;
+        let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()], None).await;
         let query = glue.execute("SELECT * FROM kaeshi").await;
 
         match query {

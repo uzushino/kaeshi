@@ -2,11 +2,7 @@ use structopt::StructOpt;
 use tokio::sync::mpsc;
 use std::collections::BTreeMap;
 
-mod parser;
-mod table;
-mod db;
-mod app;
-mod storage;
+use kaeshi::{ table, AppConfig, TokenExpr, InputToken, App, DB };
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -20,6 +16,9 @@ struct Opt {
    
     #[structopt(short, long)]
     pub json: bool,
+    
+    pub table_name: Option<String>,
+    pub timestamp: Option<String>,
 }
 
 #[tokio::main]
@@ -27,21 +26,23 @@ async fn main() -> anyhow::Result<()> {
     env_logger::init();
     let opt = Opt::from_args();
 
-    let config: app::AppConfig = {
-        let mut config = app::AppConfig::default();
+    let config: AppConfig = {
+        let mut config = AppConfig::default();
         let mut tokens = opt.tags
             .iter()
-            .map(|tag| app::TokenExpr::new_with_tag(tag))
+            .map(|tag| TokenExpr::new_with_tag(tag))
             .collect::<Vec<_>>();
+
+        config.table = opt.table_name;
+        config.timestamp = opt.timestamp;
         config.templates.append(&mut tokens);
         config
     };
 
-    let (tx, mut rx): (mpsc::UnboundedSender<app::InputToken>, mpsc::UnboundedReceiver<app::InputToken>) = mpsc::unbounded_channel();
+    let (tx, mut rx): (mpsc::UnboundedSender<InputToken>, mpsc::UnboundedReceiver<InputToken>) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
-
-    let app = app::App::new_with_config(tx, config).await?;
-
+    let app = App::new_with_config(tx, config).await?;
+    
     let _ret = tokio::join!(
         app.input_handler(),
         app.parse_handler(&mut rx, templates)
@@ -59,7 +60,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
-            let records: app::DB = row
+            let records: DB = row
                 .iter()
                 .map(|r| l.clone().into_iter().zip(r.iter().map(f).collect::<Vec<String>>()).collect::<BTreeMap<_, _>>())
                 .collect::<Vec<_>>();

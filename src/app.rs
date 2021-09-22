@@ -30,7 +30,6 @@ pub struct TokenExpr {
 }
 
 pub type Token = TokenExpr;
-
 pub type DB = Vec<BTreeMap<String, String>>;
 
 impl TokenExpr {
@@ -227,6 +226,8 @@ pub enum InputToken {
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct AppConfig {
     pub templates: Vec<Token>,
+    pub timestamp: Option<String>,
+    pub table: Option<String>,
     output: Option<Output>,
     vars: Option<Vec<String>>,
     filters: Option<Vec<String>>,
@@ -328,7 +329,7 @@ impl App {
                 .collect::<HashSet<String>>() 
         }).into_iter().collect::<Vec<_>>();
         
-        self.db.borrow_mut().create_table(None, titles).await?;
+        self.db.borrow_mut().create_table(self.config.table.clone(), titles, self.config.timestamp.clone()).await?;
         
         for row in rows.iter() {
             self.db.borrow_mut().insert(row).await?;
