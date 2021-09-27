@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         app.parse_handler(&mut rx, templates)
     );
 
-    let query = opt.query.unwrap_or("SELECT * FROM kaeshi".to_string());
+    let query = opt.query.unwrap_or(format!("SELECT * FROM {};", app.table_name()));
     let result = app.execute(query.as_str()).await?;
 
     match result {

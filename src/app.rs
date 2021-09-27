@@ -305,6 +305,10 @@ impl App {
         Ok(())
     }
 
+    pub fn table_name(self) -> String {
+        self.config.table.unwrap_or(String::from("kaeshi"))
+    }
+
     pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) -> anyhow::Result<()> {
         let syn = parser::Syntax::default();
         let mut rows: Vec<BTreeMap<String, String>> = Vec::default();
