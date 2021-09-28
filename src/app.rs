@@ -305,8 +305,8 @@ impl App {
         Ok(())
     }
 
-    pub fn table_name(self) -> String {
-        self.config.table.unwrap_or(String::from("kaeshi"))
+    pub fn table_name(&self) -> String {
+        self.config.table.clone().unwrap_or(String::from("kaeshi"))
     }
 
     pub async fn parse_handler(&self, rx: &mut mpsc::UnboundedReceiver<InputToken>, templates: Vec<TokenExpr>) -> anyhow::Result<()> {
