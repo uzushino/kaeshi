@@ -115,11 +115,25 @@ mod test {
     #[async_test]
     async fn it_select() {
         let mut glue = Glue::new();
-        let _ = glue.create_table(Some("main".to_string()), vec!["id".to_string()], None).await;
+        let _ = glue.create_table(Some("kaeshi".to_string()), vec!["id".to_string()], None).await;
         let query = glue.execute("SELECT * FROM kaeshi").await;
 
         match query {
-            Ok(Some(Payload::Select { labels: l, rows: v, ..})) => {
+            Ok(Some(Payload::Select { labels: l, rows: _, ..})) => {
+                assert_eq!(vec!["id"], l);
+            },
+            n => { println!("{:?}", n) }
+        }
+    }
+    
+    #[async_test]
+    async fn it_select_with_timestamp() {
+        let mut glue = Glue::new();
+        let _ = glue.create_table(Some("kaeshi".to_string()), vec!["id".to_string()], Some(String::from("created_at"))).await;
+        let query = glue.execute("SELECT * FROM kaeshi").await;
+
+        match query {
+            Ok(Some(Payload::Select { labels: l, rows: _, ..})) => {
                 assert_eq!(vec!["id", "created_at"], l);
             },
             n => { println!("{:?}", n) }
