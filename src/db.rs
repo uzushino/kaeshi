@@ -62,8 +62,6 @@ impl Glue {
     }
 
     pub async fn insert(&mut self, row: &BTreeMap<String, String>) -> anyhow::Result<Option<Payload>> {
-        let local: DateTime<Local> = Local::now();
-
         let c = self.columns
             .iter()
             .map(|c| {
@@ -78,6 +76,8 @@ impl Glue {
                     c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
                 )
             } else {
+                let local: DateTime<Local> = Local::now();
+
                 format!(r#"INSERT INTO {} VALUES ({}, '{}')"#, 
                     self.table_name().as_str(), 
                     c.iter().map(Self::sql_value).collect::<Vec<_>>().join(","), 
