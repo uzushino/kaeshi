@@ -15,6 +15,9 @@ struct Opt {
     pub query: Option<String>,
    
     #[structopt(short, long)]
+    pub update_query: Option<String>,
+   
+    #[structopt(short, long)]
     pub json: bool,
     
     pub table_name: Option<String>,
