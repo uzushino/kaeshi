@@ -34,8 +34,8 @@ impl GStoreMut<DataKey> for MemoryStorage {}
 #[async_trait(?Send)]
 impl StoreMut<DataKey> for MemoryStorage {
     async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
-        let table_name = schema.table_name.to_string();
-        let mut s= HashMap::default();
+        let table_name = schema.table_name.clone();
+        let mut s = HashMap::default();
 
         s.insert(table_name, schema.clone());
 

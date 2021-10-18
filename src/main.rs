@@ -20,7 +20,9 @@ struct Opt {
     #[structopt(short, long)]
     pub json: bool,
     
+    #[structopt(long)]
     pub table_name: Option<String>,
+
     pub timestamp: Option<String>,
 }
 

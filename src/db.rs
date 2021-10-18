@@ -1,5 +1,6 @@
 use anyhow::anyhow;
-use gluesql::{Payload, tests::data_type::timestamp::timestamp};
+
+use gluesql::Payload;
 use chrono::prelude::*;
 use std::collections::BTreeMap;
 use sql_builder::esc;
