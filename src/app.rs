@@ -110,6 +110,7 @@ impl TokenExpr {
             match token {
                 parser::Node::Lit(a, b, c) => {
                     let a: IResult<&str, &str> = tag(&format!("{}{}{}", a, b, c)[..])(input.as_str());
+
                     match a {
                         Ok((rest, _b)) => input = rest.to_string(),
                         _ => return Err(default_error(input.as_str()).map(|(s, k)| (s.to_string(), k)))
@@ -143,7 +144,6 @@ impl TokenExpr {
                             Some(parser::Expr::BinOp(op, left, right)) => {
                                 if Self::bin_op(&mut h, op, left, right) {
                                     if let Ok((_, h2)) = Self::parse_token(rx, &input, ns).await {
-
                                         for m in h2.iter() {
                                             for (k, v) in m.iter() {
                                                 h.insert(k.to_string(), v.to_owned());

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use gluesql::{GStore, GStoreMut, MutResult, Result, Row, RowIter, Schema, Store, StoreMut, data};
+use gluesql::{GStore, GStoreMut, MutResult, Result, Row, RowIter, Schema, Store, StoreMut};
 use im::HashMap;
 
 #[derive(Clone, Debug)]

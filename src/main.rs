@@ -3,6 +3,15 @@ use tokio::sync::mpsc;
 use std::collections::BTreeMap;
 
 use kaeshi::{ table, AppConfig, TokenExpr, InputToken, App, DB };
+use clap::arg_enum;
+
+arg_enum! {
+    #[derive(Debug)]
+    enum OutputType {
+        Csv,
+        Table,
+    }
+}
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -15,13 +24,13 @@ struct Opt {
     pub query: Option<String>,
    
     #[structopt(short, long)]
-    pub update_query: Option<String>,
-   
-    #[structopt(short, long)]
     pub json: bool,
     
     #[structopt(long)]
     pub table_name: Option<String>,
+
+    #[structopt(possible_values = &OutputType::variants(), case_insensitive = true)]
+    pub output_type: Option<OutputType>,
 
     pub timestamp: Option<String>,
 }
