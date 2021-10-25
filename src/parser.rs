@@ -91,7 +91,7 @@ fn split_ws_parts(s: &[u8]) -> Node {
     let start = s.iter().position(&is_ws);
     let res = if let Some(start) = start {
         let end = s.iter().rposition(&is_ws2);
-        
+
         if let Some(end) = end {
             (&s[..start], &s[start..=end], &s[end + 1..])
         } else {
@@ -129,27 +129,23 @@ fn take_content<'a>(i: &'a [u8], s: &'a Syntax) -> ParserError<'a, Node<'a>> {
             Start => {
                 if *c == bs || *c == es {
                     Brace(idx)
-                }
-                else {
+                } else {
                     Any
                 }
             }
             Any => {
                 if *c == bs || *c == es {
                     Brace(idx)
-                }
-                else if *c == b'\n' {
-                    End(idx+1)
-                } 
-                else {
+                } else if *c == b'\n' {
+                    End(idx + 1)
+                } else {
                     Any
                 }
             }
             Brace(start) => {
                 if *c == be || *c == ee {
                     End(start)
-                } 
-                else {
+                } else {
                     Any
                 }
             }
@@ -450,10 +446,7 @@ fn block_for<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
 fn block_node<'a>(i: &'a [u8], s: &'a Syntax) -> IResult<&'a [u8], Node<'a>> {
     let p = tuple((
         |i| tag_block_start(i, s),
-        alt((
-            |i| block_if(i, s),
-            |i| block_for(i, s),
-        )),
+        alt((|i| block_if(i, s), |i| block_for(i, s))),
         |i| tag_block_end(i, s),
     ));
     let (i, (_, contents, _)) = p(i)?;

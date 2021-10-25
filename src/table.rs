@@ -1,21 +1,26 @@
-use std::{collections::{ HashSet, BTreeMap }};
-use prettytable::{ Table, Cell, Row };
+use prettytable::{Cell, Row, Table};
+use std::collections::{BTreeMap, HashSet};
 use std::io::Write;
 
-pub fn printjson<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<(), std::io::Error> where W: Write {
+pub fn printjson<W>(
+    mut writer: W,
+    rows: &Vec<BTreeMap<String, String>>,
+) -> anyhow::Result<(), std::io::Error>
+where
+    W: Write,
+{
     let j = serde_json::to_string(&rows).unwrap();
     writer.write_all(j.as_bytes())
 }
 
-pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<usize> 
-   where W: Write  {
+pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<usize>
+where
+    W: Write,
+{
     let titles: HashSet<String> = rows.iter().fold(HashSet::<String>::default(), |acc, row| {
-        let ks: HashSet<String> =
-            row.keys().cloned().collect();
+        let ks: HashSet<String> = row.keys().cloned().collect();
 
-        acc.union(&ks)
-            .cloned()
-            .collect::<HashSet<String>>() 
+        acc.union(&ks).cloned().collect::<HashSet<String>>()
     });
 
     let mut table = Table::new();
@@ -23,7 +28,9 @@ pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyho
 
     for row in rows {
         let record = titles.iter().fold(Vec::default(), |mut acc, title| {
-            acc.push(Cell::new(row.get(title).map(|s| s.as_ref()).unwrap_or_default()));
+            acc.push(Cell::new(
+                row.get(title).map(|s| s.as_ref()).unwrap_or_default(),
+            ));
             acc
         });
 
@@ -35,8 +42,12 @@ pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyho
         .map_err(|_| anyhow::anyhow!("Cannot write output"))
 }
 
-pub fn printstd_noheader<W>(mut writer: W, rows: &Vec<Vec<String>>) -> anyhow::Result<usize> where W: Write  { 
+pub fn printstd_noheader<W>(mut writer: W, rows: &Vec<Vec<String>>) -> anyhow::Result<usize>
+where
+    W: Write,
+{
     let mut table = Table::new();
+
     for row in rows {
         table.add_row(Row::new(row.iter().map(|c| Cell::new(c)).collect()));
     }

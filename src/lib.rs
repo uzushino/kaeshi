@@ -1,7 +1,7 @@
+mod app;
+mod db;
 mod parser;
 mod storage;
-mod db;
-mod app;
 pub mod table;
 
-pub use app::{ AppConfig, DB, TokenExpr, InputToken, App };
+pub use app::{App, AppConfig, InputToken, TokenExpr, DB};

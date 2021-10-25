@@ -18,7 +18,7 @@ pub struct MemoryStorage {
 impl MemoryStorage {
     pub fn new() -> Self {
         let schema_map = HashMap::new();
-        
+
         Self {
             schema_map,
             data_map: HashMap::default(),
@@ -75,18 +75,21 @@ impl StoreMut<DataKey> for MemoryStorage {
         } = self;
 
         for row in rows.into_iter() {
-            let new_rows= match data_map.get_mut(table_name) {
+            let new_rows = match data_map.get_mut(table_name) {
                 Some(rows) => {
                     if self_id == 0 {
                         let new_id = rows.len() + 1;
                         rows.push((new_id as u64, row.clone()));
                         rows.clone()
                     } else {
-                        let rows= match rows.into_iter().position(|(item_id, _)| *item_id == self_id) {
+                        let rows = match rows
+                            .into_iter()
+                            .position(|(item_id, _)| *item_id == self_id)
+                        {
                             Some(index) => {
                                 rows[index] = (self_id, row);
                                 rows
-                            },
+                            }
                             None => {
                                 rows.push((self_id, row));
                                 rows
@@ -96,24 +99,31 @@ impl StoreMut<DataKey> for MemoryStorage {
                         rows.clone()
                     }
                 }
-                _ => vec![(self_id, row.clone())]
+                _ => vec![(self_id, row.clone())],
             };
 
             data_map.insert(table_name.to_string(), new_rows);
         }
 
-        Ok((Self {
-            schema_map,
-            data_map,
-            id: self_id,
-        }, ()))
+        Ok((
+            Self {
+                schema_map,
+                data_map,
+                id: self_id,
+            },
+            (),
+        ))
     }
 
     async fn delete_data(self, _table_name: &str, _key: Vec<DataKey>) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 
-    async fn update_data(self, _table_name: &str, _rows: Vec<(DataKey, Row)>) -> MutResult<Self, ()> {
+    async fn update_data(
+        self,
+        _table_name: &str,
+        _rows: Vec<(DataKey, Row)>,
+    ) -> MutResult<Self, ()> {
         Ok((self, ()))
     }
 }
@@ -121,10 +131,7 @@ impl StoreMut<DataKey> for MemoryStorage {
 #[async_trait(?Send)]
 impl Store<DataKey> for MemoryStorage {
     async fn fetch_schema(&self, table_name: &str) -> Result<Option<Schema>> {
-        let schema = self
-            .schema_map
-            .get(table_name)
-            .cloned();
+        let schema = self.schema_map.get(table_name).cloned();
         Ok(schema)
     }
 
