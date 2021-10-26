@@ -2,16 +2,7 @@ use std::collections::BTreeMap;
 use structopt::StructOpt;
 use tokio::sync::mpsc;
 
-use clap::arg_enum;
-use kaeshi::{table, App, AppConfig, InputToken, TokenExpr, DB};
-
-arg_enum! {
-    #[derive(Debug)]
-    enum OutputType {
-        Csv,
-        Table,
-    }
-}
+use kaeshi::{output, App, AppConfig, InputToken, TokenExpr, DB, OutputType};
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -22,9 +13,6 @@ struct Opt {
 
     #[structopt(short, long)]
     pub query: Option<String>,
-
-    #[structopt(short, long)]
-    pub json: bool,
 
     #[structopt(long)]
     pub table_name: Option<String>,
@@ -60,9 +48,7 @@ async fn main() -> anyhow::Result<()> {
     ) = mpsc::unbounded_channel();
     let templates = config.templates.clone();
     let app = App::new_with_config(tx, config).await?;
-
     let _ret = tokio::join!(app.input_handler(), app.parse_handler(&mut rx, templates));
-
     let query = opt
         .query
         .unwrap_or(format!("SELECT * FROM {};", app.table_name()));
@@ -87,12 +73,8 @@ async fn main() -> anyhow::Result<()> {
                         .collect::<BTreeMap<_, _>>()
                 })
                 .collect::<Vec<_>>();
-
-            if opt.json {
-                table::printjson(std::io::stdout(), &records)?;
-            } else {
-                table::printstd(std::io::stdout(), &records)?;
-            }
+                
+            output::print(std::io::stdout(), &records, opt.output_type)?;
         }
         _ => {}
     };

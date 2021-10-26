@@ -1,6 +1,16 @@
-use prettytable::{Cell, Row, Table};
 use std::collections::{BTreeMap, HashSet};
 use std::io::Write;
+
+use prettytable::{Cell, Row, Table};
+use crate::OutputType;
+
+pub fn print<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>, output_type: OutputType) -> anyhow::Result<usize>
+where W: Write {
+    match output_type {
+        OutputType::Table => printstd(writer, rows),
+        _ => Ok(0usize)
+    }
+}
 
 pub fn printjson<W>(
     mut writer: W,
