@@ -74,7 +74,7 @@ async fn main() -> anyhow::Result<()> {
                 })
                 .collect::<Vec<_>>();
                 
-            output::print(std::io::stdout(), &records, opt.output_type)?;
+            output::print(std::io::stdout(), &records, opt.output_type.unwrap())?;
         }
         _ => {}
     };
