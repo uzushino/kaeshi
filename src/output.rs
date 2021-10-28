@@ -4,7 +4,7 @@ use std::io::Write;
 use prettytable::{Cell, Row, Table};
 use crate::OutputType;
 
-pub fn print<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>, output_type: OutputType) -> anyhow::Result<usize>
+pub fn print<W>(writer: W, rows: &Vec<BTreeMap<String, String>>, output_type: OutputType) -> anyhow::Result<usize>
 where W: Write {
     match output_type {
         OutputType::Table => printstd(writer, rows),
