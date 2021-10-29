@@ -18,7 +18,6 @@ pub struct MemoryStorage {
 impl MemoryStorage {
     pub fn new() -> Self {
         let schema_map = HashMap::new();
-
         Self {
             schema_map,
             data_map: HashMap::default(),
@@ -35,8 +34,8 @@ impl GStoreMut<DataKey> for MemoryStorage {}
 impl StoreMut<DataKey> for MemoryStorage {
     async fn insert_schema(self, schema: &Schema) -> MutResult<Self, ()> {
         let table_name = schema.table_name.clone();
+        
         let mut s = HashMap::default();
-
         s.insert(table_name, schema.clone());
 
         let storage = Self {

@@ -17,7 +17,7 @@ struct Opt {
     #[structopt(long)]
     pub table_name: Option<String>,
 
-    #[structopt(possible_values = &OutputType::variants(), case_insensitive = true)]
+    #[structopt(long, possible_values = &OutputType::variants(), case_insensitive = true)]
     pub output_type: Option<OutputType>,
 
     pub timestamp: Option<String>,

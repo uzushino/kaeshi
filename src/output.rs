@@ -8,6 +8,7 @@ pub fn print<W>(writer: W, rows: &Vec<BTreeMap<String, String>>, output_type: Ou
 where W: Write {
     match output_type {
         OutputType::Table => printstd(writer, rows),
+        OutputType::JSON => printjson(writer, rows),
         _ => Ok(0usize)
     }
 }
@@ -15,12 +16,15 @@ where W: Write {
 pub fn printjson<W>(
     mut writer: W,
     rows: &Vec<BTreeMap<String, String>>,
-) -> anyhow::Result<(), std::io::Error>
+) -> anyhow::Result<usize, anyhow::Error>
 where
     W: Write,
 {
     let j = serde_json::to_string(&rows).unwrap();
+
     writer.write_all(j.as_bytes())
+        .and_then(|_| Ok(1usize))
+        .map_err(|_| anyhow::anyhow!("Cannot write output"))
 }
 
 pub fn printstd<W>(mut writer: W, rows: &Vec<BTreeMap<String, String>>) -> anyhow::Result<usize>
